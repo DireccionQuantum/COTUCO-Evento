@@ -32,7 +32,15 @@ const auth = require('../src/middleware/auth');
   }
 
   if (!auth.ROLES.includes(rol)) {
-    console.error('  Perfil inválido. Usa uno de: ' + auth.ROLES.join(', '));
+    // Se repite lo que llegó, no sólo lo que se esperaba: si el nombre
+    // venía sin comillas, aquí aparece un pedazo del nombre en lugar del
+    // perfil y el problema se ve de inmediato. Y si el perfil está bien
+    // escrito pero no sale en la lista, lo que falta es el despliegue.
+    console.error('  Perfil inválido: «' + rol + '»');
+    console.error('  Este despliegue acepta: ' + auth.ROLES.join(', '));
+    console.error('\n  Si el nombre lleva espacios, va entre comillas:');
+    console.error('    node scripts/crear-usuario.js correo@dominio.mx ' +
+                  '"Nombre Apellido" ' + auth.ROLES[0] + ' "contraseña"');
     process.exit(1);
   }
 
