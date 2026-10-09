@@ -38,7 +38,7 @@
 .barra .t {
   background: var(--acento); border-radius: 4px 4px 0 0; min-height: 3px;
 }
-.barra .t.prov { background: var(--champan); border-radius: 0 }
+.barra .t.prov { background: var(--oro-alto); border-radius: 0 }
 .barra .d {
   font-size: 9px; color: var(--apagado); text-align: center; margin-top: 5px;
   font-variant-numeric: tabular-nums;
@@ -133,7 +133,7 @@
       <div class="cifra"><div class="v" id="c-registrados">·</div>
         <div class="k">Registrados</div></div>
       <div class="cifra"><div class="v" id="c-generales">·</div>
-        <div class="k">Generales</div></div>
+        <div class="k">Invitados</div></div>
       <div class="cifra"><div class="v" id="c-proveedores">·</div>
         <div class="k">Proveedores</div></div>
       <div class="cifra"><div class="v" id="c-llegaron">·</div>
@@ -148,8 +148,8 @@
       <div class="rotulo">Registros por día</div>
       <div class="barras" id="g-dias"></div>
       <div class="leyenda">
-        <span><i style="background:var(--laton)"></i>Invitado general</span>
-        <span><i style="background:var(--champan)"></i>Proveedor</span>
+        <span><i style="background:var(--oro)"></i>Invitado</span>
+        <span><i style="background:var(--oro-alto)"></i>Proveedor</span>
       </div>
     </div>
 
@@ -176,7 +176,7 @@
 
     <div class="filtros" id="l-filtros">
       <button class="filtro on" data-f="todos">Todos</button>
-      <button class="filtro" data-f="generales">Generales</button>
+      <button class="filtro" data-f="generales">Invitados</button>
       <button class="filtro" data-f="proveedores">Proveedores</button>
       <button class="filtro" data-f="llegaron">Llegaron</button>
       <button class="filtro" data-f="faltan">Faltan</button>
@@ -309,7 +309,7 @@
   var tecleo = null;
   var yoId = null;
 
-  var TIPO_TEXTO = { general: 'General', proveedor: 'Proveedor' };
+  var TIPO_TEXTO = { general: 'Invitado', proveedor: 'Proveedor' };
   var ROL_TEXTO = { admin: 'Administrador', mesa: 'Mesa', puerta: 'Puerta' };
 
   function esc(s) {

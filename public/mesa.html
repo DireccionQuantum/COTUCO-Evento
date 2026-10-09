@@ -154,11 +154,17 @@
         <div class="opciones">
           <label class="opcion" data-tipo="general">
             <input type="radio" name="tipo" value="general">
-            <span><span class="t">Invitado general</span></span>
+            <span>
+              <span class="t">Invitado</span>
+              <span class="d">Organismos Colegiados, Asociados e Instituciones</span>
+            </span>
           </label>
           <label class="opcion" data-tipo="proveedor">
             <input type="radio" name="tipo" value="proveedor">
-            <span><span class="t">Cadena de valor · Proveedor</span></span>
+            <span>
+              <span class="t">Cadena de valor · Proveedor</span>
+              <span class="d">Ofrece productos o servicios al sector</span>
+            </span>
           </label>
         </div>
         <div class="error-txt" id="e-tipo"></div>
@@ -205,7 +211,7 @@
 
   var CAMPOS = ['nombre', 'organismo', 'cargo', 'telefono', 'email'];
   var TIPO_TEXTO = {
-    general: 'Invitado general',
+    general: 'Invitado',
     proveedor: 'Cadena de valor · Proveedor',
   };
   var ventanaEtiqueta = null;

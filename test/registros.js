@@ -278,9 +278,22 @@ prueba('la búsqueda corta escapa los comodines de SQL', () => {
 
 /* ---------------- Etiquetas de tipo ---------------- */
 
-prueba('cada tipo tiene su texto para la pantalla', () => {
+prueba('cada tipo tiene su texto largo y su texto corto', () => {
+  reg.TIPOS.forEach((t) => {
+    assert.ok(reg.ETIQUETA_TIPO[t], 'falta el texto largo de ' + t);
+    assert.ok(reg.ETIQUETA_CORTA[t], 'falta el texto corto de ' + t);
+  });
+});
+
+prueba('el texto corto cabe en una pastilla y en la etiqueta', () => {
+  // Doce caracteres es lo que entra en la pastilla de la etiqueta de
+  // 62 mm sin encimarse con el código. Si alguien alarga una de estas
+  // dos palabras, la etiqueta se rompe en silencio y nadie lo nota
+  // hasta que hay cien gafetes impresos.
   reg.TIPOS.forEach((t) =>
-    assert.ok(reg.ETIQUETA_TIPO[t], 'falta el texto de ' + t));
+    assert.ok(reg.ETIQUETA_CORTA[t].length <= 12,
+      'el texto corto de ' + t + ' mide ' + reg.ETIQUETA_CORTA[t].length +
+      ': «' + reg.ETIQUETA_CORTA[t] + '»'));
 });
 
 Promise.all(pendientes).then(function () {

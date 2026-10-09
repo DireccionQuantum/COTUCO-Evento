@@ -178,9 +178,14 @@
         <div class="opciones">
           <label class="opcion" data-tipo="general">
             <input type="radio" name="tipo" value="general">
+            <!-- El nombre formal es «Invitado (Organismos Colegiados,
+                 Asociados e Instituciones)». Partido en título y
+                 subtítulo dice lo mismo y se lee de un golpe en el
+                 celular; en un solo renglón con paréntesis se parte en
+                 tres líneas y el paréntesis queda huérfano. -->
             <span>
-              <span class="t">Invitado general</span>
-              <span class="d">Asistes a la convocatoria de COTUCO.</span>
+              <span class="t">Invitado</span>
+              <span class="d">Organismos Colegiados, Asociados e Instituciones</span>
             </span>
           </label>
           <label class="opcion" data-tipo="proveedor">
@@ -236,8 +241,10 @@
   var $ = function (id) { return document.getElementById(id); };
 
   var CAMPOS = ['nombre', 'cargo', 'organismo', 'telefono', 'email'];
+  // La forma corta, que es la que cabe en una pastilla. La larga viene
+  // del servidor en `tipo_texto` por si alguna vez hace falta.
   var TIPO_TEXTO = {
-    general: 'Invitado general',
+    general: 'Invitado',
     proveedor: 'Cadena de valor · Proveedor',
   };
 

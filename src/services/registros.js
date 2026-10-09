@@ -17,9 +17,23 @@ const crypto = require('crypto');
 
 const TIPOS = ['general', 'proveedor'];
 
+/** El nombre completo: el formulario, el padrón y la exportación. */
 const ETIQUETA_TIPO = {
-  general: 'Invitado general',
+  general: 'Invitado (Organismos Colegiados, Asociados e Instituciones)',
   proveedor: 'Cadena de valor · Proveedor',
+};
+
+/**
+ * La versión corta.
+ *
+ * El nombre completo del invitado mide 58 caracteres y no entra en una
+ * pastilla, ni en la etiqueta de 62 mm, ni en la pantalla de la puerta
+ * —donde además hay que leerlo de un vistazo y a un metro—. Lo que
+ * importa en esos tres lugares es la distinción, no el nombre formal.
+ */
+const ETIQUETA_CORTA = {
+  general: 'Invitado',
+  proveedor: 'Proveedor',
 };
 
 /* ------------------------------------------------------------------ *
@@ -474,6 +488,7 @@ async function reactivar(client, id) {
 module.exports = {
   TIPOS,
   ETIQUETA_TIPO,
+  ETIQUETA_CORTA,
   ALFABETO,
   texto,
   correo,

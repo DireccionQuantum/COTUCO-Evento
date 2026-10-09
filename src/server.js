@@ -71,6 +71,7 @@ function pasePublico(a) {
     organismo: a.organismo,
     tipo: a.tipo,
     tipo_texto: reg.ETIQUETA_TIPO[a.tipo] || '',
+    tipo_corto: reg.ETIQUETA_CORTA[a.tipo] || '',
     codigo: a.codigo,
   };
 }
@@ -332,8 +333,10 @@ app.get('/api/asistentes.csv', auth.exige('admin'), async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT a.nombre, a.cargo, a.organismo, a.telefono, a.email,
-              CASE a.tipo WHEN 'general' THEN 'Invitado general'
-                          ELSE 'Cadena de valor / Proveedor' END AS tipo,
+              CASE a.tipo
+                WHEN 'general'
+                  THEN 'Invitado (Organismos Colegiados, Asociados e Instituciones)'
+                ELSE 'Cadena de valor / Proveedor' END AS tipo,
               a.codigo,
               CASE WHEN a.origen = 'mesa' THEN 'Mesa' ELSE 'En línea' END
                 AS origen,

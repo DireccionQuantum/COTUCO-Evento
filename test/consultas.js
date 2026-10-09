@@ -136,11 +136,23 @@ for (const src of archivos) {
   }
 }
 
+/**
+ * Vacía el contenido de las cadenas, dejando las comillas.
+ *
+ * Lo que va entre comillas es texto, no código: un CASE que devuelve
+ * 'Invitado (Organismos Colegiados…)' hacía que la revisión viera
+ * «invitado(» y reclamara una función inexistente. Se vacían en vez de
+ * borrarse para no pegar lo de un lado con lo del otro.
+ */
+function sinCadenas(sql) {
+  return sql.replace(/'(?:[^']|'')*'/g, "''");
+}
+
 // Se unen con un punto y coma de por medio: con un simple salto de línea,
 // una consulta que termina en `DO UPDATE` seguida de otra que empieza en
 // `INSERT INTO` se leía como «UPDATE insert», y aparecía una tabla
 // llamada `insert` que nadie escribió.
-const todoSql = consultas.join('\n;\n');
+const todoSql = sinCadenas(consultas.join('\n;\n'));
 
 /* ------------------------------------------------------------------ *
  * Las pruebas
@@ -216,7 +228,11 @@ prueba('todas las tablas y vistas que se consultan existen', () => {
 prueba('todas las columnas con alias existen en su tabla', () => {
   const malas = new Set();
 
-  for (const q of consultas) {
+  for (const cruda of consultas) {
+    // Sin el texto de las cadenas: un literal como 'Col. Aviación' tiene
+    // un punto y se leería como la columna `col.aviación`.
+    const q = sinCadenas(cruda);
+
     // Qué alias apunta a qué tabla dentro de esta consulta.
     const alias = {};
     for (const m of q.matchAll(/\b(?:FROM|JOIN|UPDATE)\s+(\w+)\s+(?:AS\s+)?(\w+)\b/gi)) {
