@@ -333,14 +333,15 @@ select option { background: var(--fondo-alto); color: var(--texto); }
   gap: 9px;
   margin-top: 30px;
   padding-bottom: 24px;
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: .14em;
   text-transform: uppercase;
-  color: var(--apagado);
+  color: var(--tenue);
 }
 /* El logo completo con el átomo pide más alto que el texto solo: a
-   15 px el átomo se vuelve una mancha. */
-.marca img { height: 26px; width: auto; display: block; opacity: .8; }
+   15 px el átomo se vuelve una mancha. Va a 34 px y sin transparencia
+   porque Quantum patrocina el evento: atenuarlo sería desaparecerlo. */
+.marca img { height: 34px; width: auto; display: block; }
 
 /* ---------- Impresión ---------- */
 

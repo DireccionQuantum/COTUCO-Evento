@@ -639,12 +639,13 @@
           y += 24;
         }
 
-        // Pie de Quantum, con el logo si alcanzó a cargar.
-        y += 18;
+        // Pie de Quantum. A tamaño completo y sin atenuar: el pase es
+        // lo que la gente reenvía por WhatsApp, y Quantum patrocina el
+        // evento. Un logo al 78 % en la pieza más compartida es la peor
+        // esquina donde ahorrar.
+        y += 22;
         if (quantum && quantum.complete && quantum.naturalWidth) {
-          g.globalAlpha = .78;
-          y += centrada(g, quantum, W, y, 26) ? 26 : 0;
-          g.globalAlpha = 1;
+          y += centrada(g, quantum, W, y, 34) ? 34 : 0;
         }
 
         /* ---- El lienzo definitivo, ya con la altura medida ---- */
