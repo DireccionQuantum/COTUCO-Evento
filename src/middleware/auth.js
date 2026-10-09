@@ -5,12 +5,16 @@
  *
  * Tres perfiles, cada uno con lo que necesita y nada más:
  *
- *   admin   Todo. Configura el evento, ve el padrón completo, cancela,
- *           exporta y da de alta usuarios.
- *   mesa    Registro en sitio e impresión de etiquetas. Busca gente y
- *           la da de alta, pero no exporta el padrón ni cancela.
- *   puerta  Sólo el lector. Ve quién llega y registra su ingreso. No ve
- *           correos ni teléfonos del resto de la lista.
+ *   admin     Todo. Configura el evento, ve el padrón completo,
+ *             cancela, exporta y da de alta usuarios.
+ *   mesa      Registro en sitio e impresión de etiquetas. Busca gente y
+ *             la da de alta, pero no exporta el padrón ni cancela.
+ *   puerta    Sólo el lector. Ve quién llega y registra su ingreso. No
+ *             ve correos ni teléfonos del resto de la lista.
+ *   consulta  Mira y no toca: el resumen, el padrón y la exportación.
+ *             Es el perfil del cliente —COTUCO quiere ir viendo cómo
+ *             avanzan los registros—, y por eso no puede cancelar a
+ *             nadie ni cerrar el formulario por accidente.
  *
  * `puerta` es a propósito el más restringido: esas cuentas van a estar
  * en los teléfonos de gente contratada para el día, y un teléfono se
@@ -20,13 +24,21 @@
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 
-const ROLES = ['admin', 'mesa', 'puerta'];
+const ROLES = ['admin', 'mesa', 'puerta', 'consulta'];
 
-/** Qué puede hacer cada perfil. */
+/**
+ * Qué puede hacer cada perfil.
+ *
+ * `consulta` es el permiso de LECTURA del padrón; `admin` es el de
+ * escritura. Que admin incluya consulta es lo que deja marcar las
+ * pantallas de sólo mirar con el permiso chico sin quitarle nada al
+ * administrador.
+ */
 const PERMISOS = {
-  admin:  ['admin', 'mesa', 'puerta'],
-  mesa:   ['mesa', 'puerta'],
-  puerta: ['puerta'],
+  admin:    ['admin', 'mesa', 'puerta', 'consulta'],
+  mesa:     ['mesa', 'puerta'],
+  puerta:   ['puerta'],
+  consulta: ['consulta'],
 };
 
 function puede(rol, permiso) {

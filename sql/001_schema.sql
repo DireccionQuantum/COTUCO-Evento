@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   nombre        TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   rol           TEXT NOT NULL DEFAULT 'puerta'
-                  CHECK (rol IN ('admin', 'mesa', 'puerta')),
+                  CHECK (rol IN ('admin', 'mesa', 'puerta', 'consulta')),
   activo        BOOLEAN NOT NULL DEFAULT true,
   creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
 );

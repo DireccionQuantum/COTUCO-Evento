@@ -273,9 +273,14 @@ app.get('/api/etiqueta/:codigo', auth.exige('puerta'), async (req, res, next) =>
   } catch (err) { next(err); }
 });
 
-/* ================= Panel ================= */
+/* ================= Panel =================
+ *
+ * Lo que sólo mira va con el permiso `consulta`; lo que cambia algo
+ * —cancelar, reactivar, ajustes y cuentas— se queda en `admin`. Así la
+ * gente de COTUCO sigue los registros sin poder apagar el formulario.
+ */
 
-app.get('/api/panel/resumen', auth.exige('admin'), async (req, res, next) => {
+app.get('/api/panel/resumen', auth.exige('consulta'), async (req, res, next) => {
   try {
     const [resumen, porDia, cfg] = await Promise.all([
       pool.query('SELECT * FROM v_resumen'),
@@ -298,7 +303,7 @@ app.get('/api/panel/resumen', auth.exige('admin'), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-app.get('/api/asistentes', auth.exige('admin'), async (req, res, next) => {
+app.get('/api/asistentes', auth.exige('consulta'), async (req, res, next) => {
   try {
     res.json(await reg.listar(pool, {
       q: req.query.q,
@@ -329,7 +334,7 @@ app.post('/api/asistentes/:id/reactivar', auth.exige('admin'),
   });
 
 /** Lista completa para Excel. */
-app.get('/api/asistentes.csv', auth.exige('admin'), async (req, res, next) => {
+app.get('/api/asistentes.csv', auth.exige('consulta'), async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT a.nombre, a.cargo, a.organismo, a.telefono, a.email,

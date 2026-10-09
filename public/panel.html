@@ -116,7 +116,8 @@
 <div class="marco ancho" id="modulo" hidden>
   <div class="barra-sup">
     <strong id="t-evento">Panel</strong>
-    <span class="quien"><span id="p-quien"></span> ·
+    <span class="quien"><span id="p-quien"></span><span class="chip"
+      id="p-perfil" hidden style="margin-left:7px"></span> ·
       <a href="#" id="p-salir" style="color:var(--acento-alto)">salir</a></span>
   </div>
 
@@ -280,6 +281,7 @@
         <select id="u-rol">
           <option value="puerta">Puerta — sólo escanea</option>
           <option value="mesa">Mesa — registra e imprime etiquetas</option>
+          <option value="consulta">Consulta — mira el padrón, no cambia nada</option>
           <option value="admin">Administrador — todo</option>
         </select>
       </div>
@@ -308,9 +310,13 @@
   var pagina = 1;
   var tecleo = null;
   var yoId = null;
+  var soloMiro = false;   // perfil `consulta`: mira y no toca
 
   var TIPO_TEXTO = { general: 'Invitado', proveedor: 'Proveedor' };
-  var ROL_TEXTO = { admin: 'Administrador', mesa: 'Mesa', puerta: 'Puerta' };
+  var ROL_TEXTO = {
+    admin: 'Administrador', mesa: 'Mesa', puerta: 'Puerta',
+    consulta: 'Consulta',
+  };
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -358,12 +364,26 @@
   }
 
   function abrir(u) {
-    if (u.rol !== 'admin') {
+    if (u.rol !== 'admin' && u.rol !== 'consulta') {
       $('a-error').textContent = 'Tu perfil no tiene acceso al panel.';
       $('a-error').classList.add('ver');
       return;
     }
     yoId = u.id;
+    soloMiro = u.rol === 'consulta';
+
+    // Las pestañas que cambian algo no se esconden sólo por estética:
+    // el servidor igual las rechazaría, y un botón que siempre falla es
+    // peor que uno que no está.
+    if (soloMiro) {
+      ['ajustes', 'usuarios'].forEach(function (v) {
+        var p = document.querySelector('.pestana[data-vista="' + v + '"]');
+        if (p) p.remove();
+      });
+      $('p-perfil').textContent = 'solo consulta';
+      $('p-perfil').hidden = false;
+    }
+
     $('acceso').hidden = true;
     $('modulo').hidden = false;
     $('p-quien').textContent = u.nombre || u.email;
@@ -509,15 +529,16 @@
                   .filter(Boolean).join(' · ')) + '</div>' +
               '<div class="cod">' + esc(a.codigo) + '</div>' +
             '</div>' +
-            '<div class="der">' +
-              '<button class="boton fantasma chico" data-cod="' + esc(a.codigo) +
-                '">Etiqueta</button>' +
-              (a.cancelado_en
-                ? '<button class="boton fantasma chico" data-react="' + a.id +
-                  '">Reactivar</button>'
-                : '<button class="boton fantasma chico" data-cancel="' + a.id +
-                  '">Cancelar</button>') +
-            '</div>' +
+            (soloMiro ? '' :
+              '<div class="der">' +
+                '<button class="boton fantasma chico" data-cod="' +
+                  esc(a.codigo) + '">Etiqueta</button>' +
+                (a.cancelado_en
+                  ? '<button class="boton fantasma chico" data-react="' + a.id +
+                    '">Reactivar</button>'
+                  : '<button class="boton fantasma chico" data-cancel="' + a.id +
+                    '">Cancelar</button>') +
+              '</div>') +
           '</div>';
         }).join('') || '<div class="ay">Nadie coincide con esa búsqueda.</div>';
 

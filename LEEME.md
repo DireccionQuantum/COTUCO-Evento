@@ -52,14 +52,21 @@ completa con filtros, exportación a Excel y los datos del evento.
 
 ## Perfiles
 
-| Perfil   | Puede |
-|----------|-------|
-| `admin`  | Todo: padrón completo, cancelar, exportar, configurar, crear cuentas. |
-| `mesa`   | Registrar en sitio, buscar, imprimir etiquetas y escanear. |
-| `puerta` | Sólo escanear e imprimir la etiqueta de quien escanea. |
+| Perfil     | Puede |
+|------------|-------|
+| `admin`    | Todo: padrón completo, cancelar, exportar, configurar, crear cuentas. |
+| `mesa`     | Registrar en sitio, buscar, imprimir etiquetas y escanear. |
+| `puerta`   | Sólo escanear e imprimir la etiqueta de quien escanea. |
+| `consulta` | Mirar: resumen, padrón y exportación. No cambia nada. |
 
 `puerta` es el más restringido a propósito: esas cuentas van en los
 teléfonos de personal contratado para el día, y un teléfono se pierde.
+
+`consulta` es el perfil del cliente. COTUCO quiere ir viendo cómo avanzan
+los registros, y para eso no hace falta poder cancelar a nadie ni cerrar
+el formulario público. Al entrar con ese perfil el panel se abre con dos
+pestañas —Resumen y Registrados—, sin los botones de cancelar ni los de
+etiqueta, y con una marca de «solo consulta» junto al nombre.
 
 ---
 

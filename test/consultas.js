@@ -313,15 +313,64 @@ prueba('el CHECK de tipo cubre exactamente los tipos del código', () => {
     ' y el código usa ' + reg.TIPOS.join(', '));
 });
 
-prueba('el CHECK de rol cubre exactamente los roles del middleware', () => {
-  const m = sql.match(/rol\s+TEXT[\s\S]*?CHECK\s*\(rol IN \(([^)]*)\)\)/i);
-  assert.ok(m, 'no se encontró el CHECK de rol');
-  const enSql = [...m[1].matchAll(/'(\w+)'/g)].map((x) => x[1]).sort();
+prueba('todo CHECK de rol cubre exactamente los roles del middleware', () => {
+  // Hay más de uno: el de la columna en 001 —el que se aplica en una
+  // base nueva— y el que lo reemplaza en 002 —el que se aplica en la
+  // base que ya está desplegada—. Si se actualiza uno y se olvida el
+  // otro, el despliegue nuevo y el viejo aceptan perfiles distintos y
+  // el error aparece hasta que alguien intenta crear la cuenta.
+  const listas = [...sql.matchAll(/CHECK\s*\(\s*rol IN \(([^)]*)\)\s*\)/gi)]
+    .map((m) => [...m[1].matchAll(/'(\w+)'/g)].map((x) => x[1]).sort());
+
+  assert.ok(listas.length >= 1, 'no se encontró ningún CHECK de rol');
 
   const auth = require('../src/middleware/auth');
-  assert.deepStrictEqual(enSql, [...auth.ROLES].sort(),
-    'el esquema permite ' + enSql.join(', ') +
-    ' y el middleware usa ' + auth.ROLES.join(', '));
+  const esperado = [...auth.ROLES].sort();
+  listas.forEach((enSql, i) =>
+    assert.deepStrictEqual(enSql, esperado,
+      'el CHECK #' + (i + 1) + ' permite ' + enSql.join(', ') +
+      ' y el middleware usa ' + auth.ROLES.join(', ')));
+});
+
+prueba('el padrón se lee con `consulta` y se cambia con `admin`', () => {
+  // El perfil de cliente tiene que poder mirar sin poder tocar. Si
+  // alguien marca por descuido una ruta de escritura con el permiso de
+  // lectura, COTUCO podría cancelar un registro o cerrar el formulario
+  // desde su propia cuenta.
+  const servidor = fs.readFileSync(
+    path.join(RAIZ, 'src', 'server.js'), 'utf8');
+
+  const LECTURA = ['/api/panel/resumen', '/api/asistentes', '/api/asistentes.csv'];
+  const ESCRITURA = ['/api/asistentes/:id/cancelar', '/api/asistentes/:id/reactivar',
+                     '/api/config', '/api/usuarios'];
+
+  for (const ruta of LECTURA) {
+    const re = new RegExp("app\\.get\\('" + ruta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+                          "',\\s*auth\\.exige\\('(\\w+)'\\)");
+    const m = servidor.match(re);
+    assert.ok(m, 'no se encontró la ruta de lectura ' + ruta);
+    assert.strictEqual(m[1], 'consulta',
+      ruta + ' exige ' + m[1] + ' y debería exigir consulta');
+  }
+
+  for (const ruta of ESCRITURA) {
+    const re = new RegExp("app\\.post\\('" + ruta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+                          "',\\s*\\n?\\s*auth\\.exige\\('(\\w+)'\\)");
+    const m = servidor.match(re);
+    assert.ok(m, 'no se encontró la ruta de escritura ' + ruta);
+    assert.strictEqual(m[1], 'admin',
+      ruta + ' exige ' + m[1] + ' y debería exigir admin');
+  }
+});
+
+prueba('`consulta` no alcanza nada que cambie datos', () => {
+  const auth = require('../src/middleware/auth');
+  ['admin', 'mesa', 'puerta'].forEach((p) =>
+    assert.ok(!auth.puede('consulta', p),
+      'consulta no debería tener el permiso ' + p));
+  assert.ok(auth.puede('consulta', 'consulta'));
+  // Y el administrador sigue viéndolo todo.
+  assert.ok(auth.puede('admin', 'consulta'), 'admin perdió el acceso de lectura');
 });
 
 prueba('cada rol del middleware tiene permisos definidos', () => {
