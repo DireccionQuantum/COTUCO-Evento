@@ -1,0 +1,350 @@
+/* =====================================================================
+   Registro de asistentes · COTUCO
+   Cóctel Presentación · Tijuana, un destino para congresos y convenciones
+   21 de octubre de 2026 · Grand Salón, Grand Hotel Tijuana
+
+   La paleta está muestreada de la invitación, no inventada: el azul del
+   panel central (#0D0052) y el oro del logotipo TIJUANA (#DFA92C con
+   brillo en #F6EEA3). Se respeta porque quien abre el enlace acaba de
+   ver esa imagen en su WhatsApp y tiene que reconocer que es lo mismo.
+
+   Un solo ambiente para todas las pantallas. El cóctel es de noche y el
+   registro se abre casi siempre desde el celular; un fondo claro en
+   medio de esto rompería la continuidad con la pieza.
+   ===================================================================== */
+
+:root {
+  /* Muestreados de la invitación */
+  --marino:     #0D0052;   /* panel central            */
+  --marino-alto:#17007A;   /* el azul del marco, arriba */
+  --tinta:      #06002A;   /* lo más profundo           */
+  --oro:        #DFA92C;
+  --oro-alto:   #F6EEA3;   /* el brillo del degradado   */
+  --oro-bajo:   #9A6F14;
+
+  --fondo:      var(--marino);
+  --fondo-alto: #15006B;
+
+  --texto:      #FFFFFF;
+  --tenue:      rgba(255, 255, 255, .76);
+  --apagado:    rgba(255, 255, 255, .54);
+  --linea:      rgba(255, 255, 255, .17);
+  --linea-suave:rgba(255, 255, 255, .09);
+  --campo:      rgba(255, 255, 255, .07);
+
+  --acento:     var(--oro);
+  --acento-alto:var(--oro-alto);
+
+  /* El verde de Quantum no va en material de COTUCO. Para «correcto» se
+     usa un verde propio, apagado, que sobre el azul se distingue sin
+     competir con el oro. El ámbar y el rojo se conservan porque un aviso
+     y un error tienen que leerse como tales. */
+  --bien:       #6FD09A;
+  --ambar:      #E8C45C;
+  --rojo:       #FF8A7A;
+
+  --r:          12px;
+  --r-grande:   18px;
+  --r-pastilla: 999px;
+
+  --sombra:     0 14px 40px rgba(0, 0, 0, .4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: var(--texto);
+  background: var(--fondo);
+  min-height: 100vh;
+  line-height: 1.5;
+  /* El azul se abre arriba y se cierra abajo, como en la invitación, con
+     un halo de oro detrás del encabezado. Se dibuja con CSS y no con una
+     imagen para que entre al instante en la red del celular de quien
+     abra el enlace.
+     Sin `fixed`: en móvil el fondo fijo deja de pintarse al hacer
+     scroll y el final de la página queda en color plano. */
+  background-image:
+    radial-gradient(ellipse 85% 42% at 50% 0%, rgba(223,169,44,.20) 0%, transparent 62%),
+    linear-gradient(172deg, #17007A 0%, #0D0052 46%, #06002A 100%);
+  background-attachment: scroll;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.marco { max-width: 520px; margin: 0 auto; padding: 0 18px; }
+.marco.ancho { max-width: 1040px; }
+
+/* ---------- Tipografía ---------- */
+
+h1 {
+  font-size: clamp(26px, 7vw, 38px);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -.025em;
+}
+h2 { font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
+h3 { font-size: 15.5px; font-weight: 800; }
+
+.ay { font-size: 14px; color: var(--tenue); line-height: 1.6; }
+
+.rotulo {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--apagado);
+}
+
+/* El nombre institucional, compuesto con tipografía y no con una
+   imagen: a cualquier tamaño queda nítido y pesa cero. */
+.marca-cotuco {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--acento-alto);
+  line-height: 1.5;
+}
+
+/* ---------- Superficies ---------- */
+
+.tarjeta {
+  background: rgba(255, 255, 255, .055);
+  border: 1px solid var(--linea);
+  border-radius: var(--r-grande);
+  padding: 24px 20px;
+  box-shadow: var(--sombra);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.bloque {
+  background: rgba(255, 255, 255, .045);
+  border: 1px solid var(--linea);
+  border-radius: var(--r-grande);
+  padding: 20px;
+  margin-bottom: 14px;
+}
+
+/* ---------- Campos ---------- */
+
+.campo { margin-bottom: 15px; }
+
+.campo label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--apagado);
+  margin-bottom: 6px;
+}
+.campo label .opc {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+input, select, textarea {
+  width: 100%;
+  background: var(--campo);
+  border: 1px solid var(--linea);
+  border-radius: var(--r);
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 16px;            /* 16px evita que iOS acerque al enfocar */
+  padding: 14px 15px;
+  transition: border-color .15s, box-shadow .15s;
+}
+input::placeholder { color: var(--apagado); opacity: .7 }
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px rgba(223, 169, 44, .30);
+}
+
+.campo.malo input, .campo.malo select { border-color: var(--rojo); }
+.error-txt {
+  display: none;
+  font-size: 12.5px;
+  color: var(--rojo);
+  margin-top: 5px;
+  font-weight: 600;
+}
+.error-txt.ver { display: block; }
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23DFA92C' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  padding-right: 38px;
+}
+select option { background: var(--fondo-alto); color: var(--texto); }
+
+/* Elegir entre dos cosas con el pulgar: dos tarjetas grandes en vez de
+   un desplegable. En el celular, un <select> de dos opciones son tres
+   toques; esto es uno. */
+.opciones { display: grid; gap: 10px; }
+/* La tarjeta es un <label> y vive dentro de un `.campo`, así que `.campo
+   label` —que deja todas las etiquetas en versalitas espaciadas y en
+   bloque— le gana por especificidad: con sólo `.opcion` el texto salía
+   en mayúsculas y el botón de radio se iba a su propio renglón. Por eso
+   el selector lleva el `.campo` delante: dos clases pesan más que una
+   clase y un elemento. */
+.opcion, .campo .opcion {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--campo);
+  border: 1.5px solid var(--linea);
+  border-radius: var(--r);
+  padding: 14px 15px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  font-size: 14.5px; font-weight: 400; letter-spacing: normal;
+  text-transform: none; color: var(--texto); margin-bottom: 0;
+}
+.opcion:hover { border-color: var(--acento); }
+.opcion input { width: auto; margin: 2px 0 0; accent-color: var(--acento); flex: 0 0 auto }
+.opcion > span { display: block; min-width: 0 }
+.opcion .t { display: block; font-size: 14.5px; font-weight: 700; line-height: 1.25 }
+.opcion .d {
+  display: block; font-size: 12.5px; color: var(--apagado);
+  margin-top: 3px; line-height: 1.4;
+}
+.opcion.on {
+  border-color: var(--acento);
+  background: rgba(223, 169, 44, .16);
+}
+
+/* ---------- Botones ---------- */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--acento);
+  /* Letra azul sobre el oro: blanco sobre #DFA92C se queda en 1.9:1 y no
+     se lee en la calle con sol. En azul profundo sube a más de 7:1. */
+  color: var(--tinta);
+  border: 1px solid var(--acento);
+  border-radius: var(--r);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  padding: 15px 20px;
+  cursor: pointer;
+  transition: background .15s, transform .08s;
+}
+.boton:hover:not(:disabled) { background: var(--acento-alto); border-color: var(--acento-alto) }
+.boton:active:not(:disabled) { transform: scale(.985); }
+.boton:disabled { opacity: .45; cursor: default; }
+
+.boton.fantasma {
+  background: transparent;
+  border-color: var(--linea);
+  color: var(--texto);
+}
+.boton.fantasma:hover:not(:disabled) {
+  background: rgba(223, 169, 44, .14);
+  border-color: var(--acento);
+}
+
+.boton.chico { width: auto; font-size: 13px; padding: 10px 16px; }
+
+/* ---------- Mensajes ---------- */
+
+.mensaje {
+  display: none;
+  border-radius: var(--r);
+  padding: 13px 15px;
+  font-size: 14px;
+  line-height: 1.55;
+  margin-top: 14px;
+}
+.mensaje.ver { display: block; }
+.mensaje.mal  { background: rgba(255,138,122,.14); border: 1px solid var(--rojo) }
+.mensaje.bien { background: rgba(111,208,154,.14); border: 1px solid var(--bien) }
+.mensaje.aviso{ background: rgba(232,196,92,.14); border: 1px solid var(--ambar) }
+
+/* ---------- Pastillas de estado ---------- */
+
+.chip {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  padding: 3px 9px;
+  border-radius: var(--r-pastilla);
+  background: var(--campo);
+  border: 1px solid var(--linea);
+  color: var(--tenue);
+}
+.chip.bien  { background: rgba(111,208,154,.17); border-color: var(--bien);  color: var(--bien) }
+.chip.ambar { background: rgba(232,196,92,.17);  border-color: var(--ambar); color: var(--ambar) }
+.chip.rojo  { background: rgba(255,138,122,.17);  border-color: var(--rojo);  color: var(--rojo) }
+.chip.oro { background: rgba(223,169,44,.20);  border-color: var(--acento); color: var(--acento-alto) }
+
+/* ---------- Cifras ---------- */
+
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+.cifra {
+  background: rgba(255, 255, 255, .055);
+  border: 1px solid var(--linea);
+  border-radius: var(--r);
+  padding: 15px;
+  text-align: center;
+}
+.cifra .v {
+  font-size: 27px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.cifra .k {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--apagado);
+  margin-top: 6px;
+}
+
+/* ---------- Pie de marca ---------- */
+
+.marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 30px;
+  padding-bottom: 24px;
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--apagado);
+}
+/* El logo completo con el átomo pide más alto que el texto solo: a
+   15 px el átomo se vuelve una mancha. */
+.marca img { height: 26px; width: auto; display: block; opacity: .8; }
+
+/* ---------- Impresión ---------- */
+
+@media print {
+  body { background: #fff; color: #000; }
+  .no-imprimir { display: none !important; }
+}

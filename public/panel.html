@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#100E0B">
+<meta name="robots" content="noindex">
+<title>Panel · COTUCO</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/ui.css">
+<style>
+.barra-sup {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0; border-bottom: 1px solid var(--linea); margin-bottom: 20px;
+  gap: 12px; flex-wrap: wrap;
+}
+.barra-sup .quien { font-size: 13px; color: var(--tenue) }
+
+.pestanas { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap }
+.pestana {
+  background: var(--campo); border: 1px solid var(--linea);
+  color: var(--tenue); border-radius: var(--r); font-family: inherit;
+  font-size: 13.5px; font-weight: 700; padding: 11px 18px; cursor: pointer;
+}
+.pestana.on { background: var(--acento); border-color: var(--acento); color: var(--tinta) }
+
+/* ---------- Registros por día ---------- */
+.barras {
+  display: flex; align-items: flex-end; justify-content: flex-start;
+  gap: 6px; height: 96px; margin-top: 14px;
+}
+/* El ancho se topa: con un solo día de registros, una barra elástica se
+   estiraba de lado a lado de la pantalla y parecía un error de dibujo. */
+.barra {
+  flex: 1 1 0; max-width: 48px; display: flex; flex-direction: column;
+  justify-content: flex-end; gap: 3px;
+}
+.barra .t {
+  background: var(--acento); border-radius: 4px 4px 0 0; min-height: 3px;
+}
+.barra .t.prov { background: var(--champan); border-radius: 0 }
+.barra .d {
+  font-size: 9px; color: var(--apagado); text-align: center; margin-top: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.leyenda { display: flex; gap: 14px; margin-top: 10px; font-size: 11.5px; color: var(--apagado) }
+.leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px }
+
+/* ---------- Filtros ---------- */
+.filtros { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px }
+.filtro {
+  background: var(--campo); border: 1px solid var(--linea); color: var(--tenue);
+  border-radius: var(--r-pastilla); font-family: inherit; font-size: 12.5px;
+  font-weight: 700; padding: 8px 14px; cursor: pointer;
+}
+.filtro.on { background: var(--acento); border-color: var(--acento); color: var(--tinta) }
+
+/* ---------- Lista ---------- */
+.fila {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 13px 0; border-top: 1px solid var(--linea-suave);
+}
+.fila:first-child { border-top: none }
+.fila .izq { min-width: 0; flex: 1 }
+.fila .n { font-size: 15px; font-weight: 700; line-height: 1.25 }
+.fila .d { font-size: 12.5px; color: var(--apagado); margin-top: 2px; line-height: 1.4 }
+.fila .meta { font-size: 11.5px; color: var(--apagado); margin-top: 4px }
+.fila .cod {
+  font-size: 12px; font-weight: 800; letter-spacing: .1em;
+  color: var(--acento-alto);
+}
+.fila .der { flex: 0 0 auto; display: grid; gap: 6px; justify-items: end }
+
+.paginas { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px }
+.paginas span { font-size: 13px; color: var(--apagado) }
+
+/* ---------- Usuarios ---------- */
+.usuario {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 12px 0; border-top: 1px solid var(--linea-suave);
+}
+.usuario:first-child { border-top: none }
+.usuario .n { font-size: 14.5px; font-weight: 700 }
+.usuario .e { font-size: 12px; color: var(--apagado) }
+
+.acceso { max-width: 380px; margin: 60px auto 0 }
+.acceso .escudo { width: 190px; display: block; margin: 0 auto 16px }
+</style>
+</head>
+<body>
+
+<!-- ===== Acceso ===== -->
+<div class="marco acceso" id="acceso">
+  <div class="tarjeta">
+    <img class="escudo" src="/img/cotuco-blanco.png" alt="COTUCO">
+    <h2 style="text-align:center">Panel</h2>
+    <p class="ay" style="text-align:center;margin:4px 0 18px">
+      Registro de asistentes · COTUCO</p>
+
+    <div class="campo">
+      <label for="a-email">Correo</label>
+      <input id="a-email" type="email" autocomplete="username"
+             autocapitalize="off" enterkeyhint="next">
+    </div>
+    <div class="campo">
+      <label for="a-clave">Contraseña</label>
+      <input id="a-clave" type="password" autocomplete="current-password"
+             enterkeyhint="go">
+    </div>
+    <div class="mensaje mal" id="a-error"></div>
+    <button class="boton" id="a-entrar">Entrar</button>
+  </div>
+</div>
+
+<!-- ===== Panel ===== -->
+<div class="marco ancho" id="modulo" hidden>
+  <div class="barra-sup">
+    <strong id="t-evento">Panel</strong>
+    <span class="quien"><span id="p-quien"></span> ·
+      <a href="#" id="p-salir" style="color:var(--acento-alto)">salir</a></span>
+  </div>
+
+  <div class="pestanas">
+    <button class="pestana on" data-vista="resumen">Resumen</button>
+    <button class="pestana" data-vista="lista">Registrados</button>
+    <button class="pestana" data-vista="ajustes">Evento</button>
+    <button class="pestana" data-vista="usuarios">Usuarios</button>
+  </div>
+
+  <!-- ---- Resumen ---- -->
+  <div id="v-resumen">
+    <div class="cifras" style="margin-bottom:16px">
+      <div class="cifra"><div class="v" id="c-registrados">·</div>
+        <div class="k">Registrados</div></div>
+      <div class="cifra"><div class="v" id="c-generales">·</div>
+        <div class="k">Generales</div></div>
+      <div class="cifra"><div class="v" id="c-proveedores">·</div>
+        <div class="k">Proveedores</div></div>
+      <div class="cifra"><div class="v" id="c-llegaron">·</div>
+        <div class="k">Llegaron</div></div>
+      <div class="cifra"><div class="v" id="c-impresas">·</div>
+        <div class="k">Etiquetas</div></div>
+      <div class="cifra"><div class="v" id="c-hoy">·</div>
+        <div class="k">Hoy</div></div>
+    </div>
+
+    <div class="bloque">
+      <div class="rotulo">Registros por día</div>
+      <div class="barras" id="g-dias"></div>
+      <div class="leyenda">
+        <span><i style="background:var(--laton)"></i>Invitado general</span>
+        <span><i style="background:var(--champan)"></i>Proveedor</span>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <div class="rotulo">Enlaces</div>
+      <p class="ay" style="margin-top:8px">
+        <strong>/</strong> — registro público, el que se manda por WhatsApp<br>
+        <strong>/puerta</strong> — lector de accesos<br>
+        <strong>/mesa</strong> — registro en sitio y reimpresión de etiquetas<br>
+        <strong>/panel</strong> — esta pantalla
+      </p>
+      <button class="boton fantasma" id="b-csv" style="margin-top:14px">
+        Descargar la lista en Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- ---- Lista ---- -->
+  <div id="v-lista" hidden>
+    <div class="campo">
+      <input id="l-q" type="search" autocomplete="off"
+             placeholder="Buscar por nombre, empresa, correo, teléfono o código">
+    </div>
+
+    <div class="filtros" id="l-filtros">
+      <button class="filtro on" data-f="todos">Todos</button>
+      <button class="filtro" data-f="generales">Generales</button>
+      <button class="filtro" data-f="proveedores">Proveedores</button>
+      <button class="filtro" data-f="llegaron">Llegaron</button>
+      <button class="filtro" data-f="faltan">Faltan</button>
+      <button class="filtro" data-f="impresas">Con etiqueta</button>
+      <button class="filtro" data-f="mesa">Alta en mesa</button>
+      <button class="filtro" data-f="cancelados">Cancelados</button>
+    </div>
+
+    <div class="bloque">
+      <div class="rotulo" id="l-conteo">·</div>
+      <div id="l-filas" style="margin-top:10px"></div>
+      <div class="paginas" id="l-paginas" hidden>
+        <button class="boton fantasma chico" id="l-ant">Anterior</button>
+        <span id="l-pag"></span>
+        <button class="boton fantasma chico" id="l-sig">Siguiente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- Ajustes del evento ---- -->
+  <div id="v-ajustes" hidden>
+    <div class="bloque">
+      <div class="rotulo" style="margin-bottom:14px">Datos del evento</div>
+
+      <div class="campo">
+        <label for="g-evento">Nombre del evento</label>
+        <input id="g-evento" type="text" maxlength="120">
+        <div class="error-txt ver" style="color:var(--apagado);font-weight:400">
+          Va en el calendario, en la pestaña y en la imagen del pase.
+        </div>
+      </div>
+      <div class="campo">
+        <label for="g-lema">Lema <span class="opc">— la línea bajo el logotipo</span></label>
+        <input id="g-lema" type="text" maxlength="90">
+      </div>
+      <div class="campo">
+        <label for="g-sede">Sede</label>
+        <input id="g-sede" type="text" maxlength="120">
+      </div>
+      <div class="campo">
+        <label for="g-direccion">Dirección <span class="opc">— opcional</span></label>
+        <input id="g-direccion" type="text" maxlength="160">
+      </div>
+      <div class="campo">
+        <label for="g-fecha">Fecha</label>
+        <input id="g-fecha" type="date">
+      </div>
+      <div class="campo">
+        <label for="g-hora">Hora</label>
+        <input id="g-hora" type="time">
+      </div>
+      <div class="campo">
+        <label for="g-cupo">Cupo <span class="opc">— vacío = sin tope</span></label>
+        <input id="g-cupo" type="number" min="0" inputmode="numeric">
+      </div>
+
+      <div class="campo">
+        <label for="g-abiertos">Registros en línea</label>
+        <select id="g-abiertos">
+          <option value="si">Abiertos</option>
+          <option value="no">Cerrados</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="g-etiqueta">Etiqueta al escanear en la puerta</label>
+        <select id="g-etiqueta">
+          <option value="no">Sólo registrar el ingreso</option>
+          <option value="si">Registrar e imprimir la etiqueta</option>
+        </select>
+      </div>
+
+      <div class="mensaje bien" id="g-ok">Guardado.</div>
+      <div class="mensaje mal" id="g-error"></div>
+
+      <button class="boton" id="g-guardar" style="margin-top:8px">
+        Guardar cambios
+      </button>
+    </div>
+  </div>
+
+  <!-- ---- Usuarios ---- -->
+  <div id="v-usuarios" hidden>
+    <div class="bloque">
+      <div class="rotulo" style="margin-bottom:12px">Cuentas del equipo</div>
+      <div id="u-lista"></div>
+    </div>
+
+    <div class="bloque">
+      <div class="rotulo" style="margin-bottom:14px">Dar de alta</div>
+      <div class="campo">
+        <label for="u-nombre">Nombre</label>
+        <input id="u-nombre" type="text">
+      </div>
+      <div class="campo">
+        <label for="u-email">Correo</label>
+        <input id="u-email" type="email" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="campo">
+        <label for="u-rol">Perfil</label>
+        <select id="u-rol">
+          <option value="puerta">Puerta — sólo escanea</option>
+          <option value="mesa">Mesa — registra e imprime etiquetas</option>
+          <option value="admin">Administrador — todo</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="u-clave">Contraseña</label>
+        <input id="u-clave" type="text" autocomplete="off">
+      </div>
+      <div class="mensaje mal" id="u-error"></div>
+      <div class="mensaje bien" id="u-ok"></div>
+      <button class="boton" id="u-crear">Crear cuenta</button>
+    </div>
+  </div>
+
+  <div class="marca">
+    <span>Powered by</span>
+    <img src="/img/quantum.png" alt="Quantum Marketing &amp; Advertising">
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var filtro = 'todos';
+  var pagina = 1;
+  var tecleo = null;
+  var yoId = null;
+
+  var TIPO_TEXTO = { general: 'General', proveedor: 'Proveedor' };
+  var ROL_TEXTO = { admin: 'Administrador', mesa: 'Mesa', puerta: 'Puerta' };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function api(ruta, opts) {
+    return fetch('/api' + ruta, Object.assign({
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+    }, opts || {})).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) { d.__estado = r.status; throw d; }
+        return d;
+      });
+    });
+  }
+
+  function avisar(id, texto, clase) {
+    var e = $(id);
+    e.textContent = texto;
+    e.className = 'mensaje ' + (clase || 'mal') + ' ver';
+    setTimeout(function () { e.classList.remove('ver'); }, 4000);
+  }
+
+  /* ---------- Acceso ---------- */
+
+  function entrar() {
+    var b = $('a-entrar');
+    b.disabled = true;
+    b.textContent = 'Entrando…';
+    $('a-error').classList.remove('ver');
+
+    api('/entrar', { method: 'POST', body: JSON.stringify({
+      email: $('a-email').value, clave: $('a-clave').value,
+    })})
+      .then(function (d) { abrir(d.usuario); })
+      .catch(function (d) {
+        b.disabled = false;
+        b.textContent = 'Entrar';
+        $('a-error').textContent = (d && d.error) || 'No se pudo entrar';
+        $('a-error').classList.add('ver');
+      });
+  }
+
+  function abrir(u) {
+    if (u.rol !== 'admin') {
+      $('a-error').textContent = 'Tu perfil no tiene acceso al panel.';
+      $('a-error').classList.add('ver');
+      return;
+    }
+    yoId = u.id;
+    $('acceso').hidden = true;
+    $('modulo').hidden = false;
+    $('p-quien').textContent = u.nombre || u.email;
+    resumen();
+    setInterval(resumen, 30000);
+  }
+
+  $('a-entrar').addEventListener('click', entrar);
+  $('a-clave').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') entrar();
+  });
+  $('a-email').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') $('a-clave').focus();
+  });
+  $('p-salir').addEventListener('click', function (ev) {
+    ev.preventDefault();
+    api('/salir', { method: 'POST' }).finally(function () { location.reload(); });
+  });
+
+  /* ---------- Pestañas ---------- */
+
+  document.querySelectorAll('.pestana').forEach(function (p) {
+    p.addEventListener('click', function () {
+      var v = this.getAttribute('data-vista');
+      document.querySelectorAll('.pestana').forEach(function (o) {
+        o.classList.toggle('on', o === p);
+      });
+      ['resumen', 'lista', 'ajustes', 'usuarios'].forEach(function (k) {
+        $('v-' + k).hidden = k !== v;
+      });
+      if (v === 'lista') listar();
+      if (v === 'usuarios') usuarios();
+    });
+  });
+
+  /* ---------- Resumen ---------- */
+
+  function resumen() {
+    api('/panel/resumen').then(function (d) {
+      var r = d.resumen || {};
+      ['registrados', 'generales', 'proveedores', 'llegaron', 'impresas', 'hoy']
+        .forEach(function (k) {
+          $('c-' + k).textContent = r[k] != null ? r[k] : '·';
+        });
+
+      var c = d.config || {};
+      $('t-evento').textContent = c.evento || 'Panel';
+      $('g-evento').value = c.evento || '';
+      $('g-lema').value = c.lema || '';
+      $('g-sede').value = c.sede || '';
+      $('g-direccion').value = c.direccion || '';
+      $('g-fecha').value = c.fecha || '';
+      $('g-hora').value = c.hora || '';
+      $('g-cupo').value = c.cupo || '';
+      $('g-abiertos').value = (c.registros_abiertos || 'si').toLowerCase() === 'si'
+        ? 'si' : 'no';
+      $('g-etiqueta').value = (c.etiqueta_en_puerta || 'no').toLowerCase() === 'si'
+        ? 'si' : 'no';
+
+      pintarDias(d.por_dia || []);
+    }).catch(function (d) {
+      if (d && d.__estado === 401) location.reload();
+    });
+  }
+
+  function pintarDias(dias) {
+    if (!dias.length) {
+      $('g-dias').innerHTML =
+        '<div class="ay" style="align-self:center">Todavía no hay registros.</div>';
+      return;
+    }
+    var tope = Math.max.apply(null, dias.map(function (d) { return d.total; })) || 1;
+    // Las últimas dos semanas: más barras que eso en un celular se
+    // convierten en rayas de un pixel que no dicen nada.
+    $('g-dias').innerHTML = dias.slice(-14).map(function (d) {
+      var hGen = Math.round((d.generales / tope) * 86);
+      var hPro = Math.round((d.proveedores / tope) * 86);
+      return '<div class="barra" title="' + esc(d.dia) + ': ' + d.total + '">' +
+        (hPro ? '<div class="t prov" style="height:' + hPro + 'px"></div>' : '') +
+        '<div class="t" style="height:' + Math.max(hGen, d.generales ? 3 : 0) +
+          'px"></div>' +
+        '<div class="d">' + esc(d.dia) + '</div></div>';
+    }).join('');
+  }
+
+  $('b-csv').addEventListener('click', function () {
+    location.href = '/api/asistentes.csv';
+  });
+
+  /* ---------- Lista ---------- */
+
+  document.querySelectorAll('.filtro').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.filtro').forEach(function (o) {
+        o.classList.toggle('on', o === b);
+      });
+      filtro = b.getAttribute('data-f');
+      pagina = 1;
+      listar();
+    });
+  });
+
+  $('l-q').addEventListener('input', function () {
+    clearTimeout(tecleo);
+    tecleo = setTimeout(function () { pagina = 1; listar(); }, 280);
+  });
+
+  $('l-ant').addEventListener('click', function () {
+    if (pagina > 1) { pagina--; listar(); }
+  });
+  $('l-sig').addEventListener('click', function () { pagina++; listar(); });
+
+  function listar() {
+    var q = encodeURIComponent($('l-q').value.trim());
+    api('/asistentes?q=' + q + '&filtro=' + filtro + '&pagina=' + pagina)
+      .then(function (d) {
+        $('l-conteo').textContent = d.total +
+          (d.total === 1 ? ' persona' : ' personas');
+
+        $('l-filas').innerHTML = (d.asistentes || []).map(function (a) {
+          var chips = [];
+          if (a.cancelado_en) chips.push('<span class="chip rojo">cancelado</span>');
+          else if (a.llego_en) chips.push('<span class="chip bien">entró</span>');
+          if (a.tipo === 'proveedor') {
+            chips.push('<span class="chip oro">proveedor</span>');
+          }
+          if (a.origen === 'mesa') chips.push('<span class="chip">mesa</span>');
+          if (a.impresiones > 1) {
+            chips.push('<span class="chip ambar">' + a.impresiones +
+                       ' impresiones</span>');
+          }
+
+          return '<div class="fila">' +
+            '<div class="izq">' +
+              '<div class="n">' + esc(a.nombre) + ' ' + chips.join(' ') + '</div>' +
+              '<div class="d">' +
+                esc([a.cargo, a.organismo].filter(Boolean).join(' · ')) + '</div>' +
+              // La fecha entra en la misma lista que el correo y el
+              // teléfono: pegarla con un punto suelto deja un «· 08/10»
+              // colgando cuando el alta fue en mesa y no hay contacto.
+              '<div class="meta">' +
+                esc([a.email, a.telefono, a.registro]
+                  .filter(Boolean).join(' · ')) + '</div>' +
+              '<div class="cod">' + esc(a.codigo) + '</div>' +
+            '</div>' +
+            '<div class="der">' +
+              '<button class="boton fantasma chico" data-cod="' + esc(a.codigo) +
+                '">Etiqueta</button>' +
+              (a.cancelado_en
+                ? '<button class="boton fantasma chico" data-react="' + a.id +
+                  '">Reactivar</button>'
+                : '<button class="boton fantasma chico" data-cancel="' + a.id +
+                  '">Cancelar</button>') +
+            '</div>' +
+          '</div>';
+        }).join('') || '<div class="ay">Nadie coincide con esa búsqueda.</div>';
+
+        $('l-paginas').hidden = d.paginas <= 1;
+        $('l-pag').textContent = 'Página ' + d.pagina + ' de ' + d.paginas;
+        $('l-ant').disabled = d.pagina <= 1;
+        $('l-sig').disabled = d.pagina >= d.paginas;
+
+        $('l-filas').querySelectorAll('button[data-cod]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            window.open('/etiqueta?codigo=' +
+              encodeURIComponent(this.getAttribute('data-cod')),
+              'etiquetaCotuco', 'width=420,height=620');
+          });
+        });
+        $('l-filas').querySelectorAll('button[data-cancel]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            if (!confirm('¿Cancelar este registro?')) return;
+            api('/asistentes/' + this.getAttribute('data-cancel') + '/cancelar',
+              { method: 'POST' }).then(function () { listar(); resumen(); })
+              .catch(function () { alert('No se pudo cancelar.'); });
+          });
+        });
+        $('l-filas').querySelectorAll('button[data-react]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            api('/asistentes/' + this.getAttribute('data-react') + '/reactivar',
+              { method: 'POST' }).then(function () { listar(); resumen(); })
+              .catch(function () { alert('No se pudo reactivar.'); });
+          });
+        });
+      })
+      .catch(function (d) {
+        if (d && d.__estado === 401) location.reload();
+      });
+  }
+
+  /* ---------- Ajustes ---------- */
+
+  $('g-guardar').addEventListener('click', function () {
+    var b = this;
+    b.disabled = true;
+    b.textContent = 'Guardando…';
+
+    api('/config', { method: 'POST', body: JSON.stringify({
+      evento: $('g-evento').value,
+      lema: $('g-lema').value,
+      sede: $('g-sede').value,
+      direccion: $('g-direccion').value,
+      fecha: $('g-fecha').value,
+      hora: $('g-hora').value,
+      cupo: $('g-cupo').value,
+      registros_abiertos: $('g-abiertos').value,
+      etiqueta_en_puerta: $('g-etiqueta').value,
+    })})
+      .then(function () {
+        b.disabled = false;
+        b.textContent = 'Guardar cambios';
+        avisar('g-ok', 'Guardado.', 'bien');
+        resumen();
+      })
+      .catch(function (d) {
+        b.disabled = false;
+        b.textContent = 'Guardar cambios';
+        avisar('g-error', (d && d.error) || 'No se pudo guardar.');
+      });
+  });
+
+  /* ---------- Usuarios ---------- */
+
+  function usuarios() {
+    api('/usuarios').then(function (d) {
+      if (!$('u-clave').value) $('u-clave').value = d.sugerida || '';
+
+      $('u-lista').innerHTML = (d.usuarios || []).map(function (u) {
+        return '<div class="usuario">' +
+          '<div><div class="n">' + esc(u.nombre) +
+            (u.activo ? '' : ' <span class="chip rojo">inactivo</span>') +
+            '</div>' +
+            '<div class="e">' + esc(u.email) + ' · ' +
+              esc(ROL_TEXTO[u.rol] || u.rol) + '</div></div>' +
+          '<div style="display:flex;gap:6px">' +
+            '<button class="boton fantasma chico" data-clave="' + u.id +
+              '">Clave</button>' +
+            (u.id === yoId ? '' :
+              '<button class="boton fantasma chico" data-activo="' + u.id +
+                '" data-valor="' + (u.activo ? '0' : '1') + '">' +
+                (u.activo ? 'Desactivar' : 'Activar') + '</button>') +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      $('u-lista').querySelectorAll('button[data-clave]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var nueva = prompt('Nueva contraseña (mínimo 8 caracteres):');
+          if (!nueva) return;
+          api('/usuarios/' + this.getAttribute('data-clave') + '/clave',
+            { method: 'POST', body: JSON.stringify({ clave: nueva }) })
+            .then(function () { alert('Contraseña cambiada.'); })
+            .catch(function (d) { alert((d && d.error) || 'No se pudo cambiar.'); });
+        });
+      });
+
+      $('u-lista').querySelectorAll('button[data-activo]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          api('/usuarios/' + this.getAttribute('data-activo') + '/activo', {
+            method: 'POST',
+            body: JSON.stringify({ activo: this.getAttribute('data-valor') === '1' }),
+          }).then(usuarios)
+            .catch(function (d) { alert((d && d.error) || 'No se pudo cambiar.'); });
+        });
+      });
+    }).catch(function (d) {
+      if (d && d.__estado === 401) location.reload();
+    });
+  }
+
+  $('u-crear').addEventListener('click', function () {
+    var b = this;
+    b.disabled = true;
+    api('/usuarios', { method: 'POST', body: JSON.stringify({
+      nombre: $('u-nombre').value,
+      email: $('u-email').value,
+      rol: $('u-rol').value,
+      clave: $('u-clave').value,
+    })})
+      .then(function (d) {
+        b.disabled = false;
+        avisar('u-ok', 'Cuenta creada para ' + d.usuario.email +
+          '. Anota la contraseña antes de salir.', 'bien');
+        $('u-nombre').value = '';
+        $('u-email').value = '';
+        $('u-clave').value = '';
+        usuarios();
+      })
+      .catch(function (d) {
+        b.disabled = false;
+        avisar('u-error', (d && d.error) || 'No se pudo crear la cuenta.');
+      });
+  });
+
+  /* ---------- Arranque ---------- */
+
+  api('/sesion').then(function (d) {
+    if (d.usuario) abrir(d.usuario);
+    else $('a-email').focus();
+  }).catch(function () { $('a-email').focus(); });
+})();
+</script>
+</body>
+</html>

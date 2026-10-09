@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#100E0B">
+<meta name="robots" content="noindex">
+<title>Entrada · COTUCO</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/ui.css">
+<style>
+/* La puerta de un evento: gente llegando en grupos y personal de pie sin
+   tiempo de leer. El resultado tiene que verse desde un metro y sonar
+   distinto según lo que pase. */
+
+.barra-sup {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--linea); margin-bottom: 18px;
+}
+.barra-sup .quien { font-size: 13px; color: var(--tenue) }
+
+.marcador { display: flex; gap: 9px; margin-bottom: 16px }
+.marcador > div {
+  flex: 1; background: rgba(237,230,214,.05); border: 1px solid var(--linea);
+  border-radius: var(--r); padding: 12px 8px; text-align: center;
+}
+.marcador .v {
+  font-size: 23px; font-weight: 900; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.marcador .k {
+  font-size: 9px; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--apagado); margin-top: 5px;
+}
+
+.modos { display: flex; gap: 8px; margin-bottom: 10px }
+.modo {
+  flex: 1; background: var(--campo); border: 1px solid var(--linea);
+  color: var(--tenue); border-radius: var(--r); font-family: inherit;
+  font-size: 13px; font-weight: 700; padding: 11px; cursor: pointer;
+}
+.modo.on { background: var(--acento); border-color: var(--acento); color: var(--tinta) }
+.modo.icono { flex: 0 0 auto; width: 46px; font-size: 15px }
+
+/* El interruptor de impresión va suelto y bien visible: encenderlo sin
+   querer gasta rollo toda la noche, y apagarlo sin querer deja a la
+   gente sin su etiqueta. */
+.impresion {
+  display: flex; align-items: center; gap: 11px;
+  background: var(--campo); border: 1px solid var(--linea);
+  border-radius: var(--r); padding: 11px 14px; margin-bottom: 14px;
+  cursor: pointer;
+}
+.impresion.on { border-color: var(--acento); background: rgba(180,144,84,.14) }
+.impresion input { width: auto; accent-color: var(--acento); flex: 0 0 auto }
+.impresion > span { display: block; min-width: 0 }
+.impresion .t { display: block; font-size: 13.5px; font-weight: 700 }
+.impresion .d {
+  display: block; font-size: 11.5px; color: var(--apagado); margin-top: 1px;
+}
+
+#camara { border-radius: var(--r-grande); overflow: hidden; margin-bottom: 14px }
+#camara video { width: 100%; display: block }
+
+input.lector {
+  font-size: 25px; font-weight: 900; letter-spacing: .2em;
+  text-align: center; text-transform: uppercase; padding: 20px;
+  border-color: var(--acento);
+}
+
+/* El resultado: grande, con color, imposible de no ver. */
+.resultado {
+  border-radius: var(--r-grande); padding: 26px 20px; text-align: center;
+  border: 2px solid var(--linea); background: rgba(237,230,214,.04);
+  transition: background .2s, border-color .2s;
+}
+.resultado .ico { font-size: 44px; line-height: 1 }
+.resultado .quien { font-size: 23px; font-weight: 900; margin-top: 10px; line-height: 1.2 }
+.resultado .detalle { font-size: 14px; color: var(--tenue); margin-top: 6px; line-height: 1.5 }
+.resultado .chip { margin-top: 10px }
+
+.resultado.bien  { background: rgba(127,184,122,.14); border-color: var(--bien) }
+.resultado.bien .ico { color: var(--bien) }
+.resultado.avisa { background: rgba(224,168,60,.14); border-color: var(--ambar) }
+.resultado.avisa .ico { color: var(--ambar) }
+.resultado.mal   { background: rgba(217,115,95,.14); border-color: var(--rojo) }
+.resultado.mal .ico { color: var(--rojo) }
+
+.reimprimir { margin-top: 14px }
+
+.ultimos { margin-top: 18px }
+.ultimos .rotulo { margin-bottom: 9px }
+.ultimo {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 9px 0; border-top: 1px solid var(--linea-suave);
+  font-size: 13.5px;
+}
+.ultimo:first-of-type { border-top: none }
+.ultimo .n { min-width: 0 }
+.ultimo .e { font-size: 11.5px; color: var(--apagado) }
+.ultimo .h { font-size: 12px; color: var(--apagado); font-variant-numeric: tabular-nums }
+
+.acceso { max-width: 380px; margin: 60px auto 0 }
+.acceso .escudo { width: 190px; display: block; margin: 0 auto 16px }
+</style>
+</head>
+<body>
+
+<!-- ===== Acceso del personal ===== -->
+<div class="marco acceso" id="acceso">
+  <div class="tarjeta">
+    <img class="escudo" src="/img/cotuco-blanco.png" alt="COTUCO">
+    <h2 style="text-align:center">Entrada</h2>
+    <p class="ay" style="text-align:center;margin:4px 0 18px">
+      Control de acceso · COTUCO</p>
+
+    <div class="campo">
+      <label for="a-email">Correo</label>
+      <input id="a-email" type="email" autocomplete="username"
+             autocapitalize="off" enterkeyhint="next">
+    </div>
+    <div class="campo">
+      <label for="a-clave">Contraseña</label>
+      <input id="a-clave" type="password" autocomplete="current-password"
+             enterkeyhint="go">
+    </div>
+    <div class="mensaje mal" id="a-error"></div>
+    <button class="boton" id="a-entrar">Entrar</button>
+  </div>
+</div>
+
+<!-- ===== Lector ===== -->
+<div class="marco" id="modulo" hidden>
+  <div class="barra-sup">
+    <strong>Entrada</strong>
+    <span class="quien"><span id="p-quien"></span> ·
+      <a href="#" id="p-salir" style="color:var(--acento-alto)">salir</a></span>
+  </div>
+
+  <div class="marcador">
+    <div><div class="v" id="m-llegaron">·</div><div class="k">Llegaron</div></div>
+    <div><div class="v" id="m-total">·</div><div class="k">Registrados</div></div>
+    <div><div class="v" id="m-faltan">·</div><div class="k">Faltan</div></div>
+  </div>
+
+  <div class="modos">
+    <button class="modo on" data-modo="camara">Cámara</button>
+    <button class="modo" data-modo="lector">Lector USB</button>
+    <button class="modo icono on" id="btn-sonido" title="Sonido">♪</button>
+  </div>
+
+  <label class="impresion" id="sw-impresion">
+    <input type="checkbox" id="chk-impresion">
+    <span>
+      <span class="t">Imprimir etiqueta al escanear</span>
+      <span class="d">Brother QL · 62 mm · se abre la ventana de impresión</span>
+    </span>
+  </label>
+
+  <div id="camara"></div>
+
+  <div id="zona-lector" hidden>
+    <input id="l-codigo" class="lector" autocomplete="off"
+           autocapitalize="characters" placeholder="Acerca el pase"
+           enterkeyhint="go">
+  </div>
+
+  <div class="resultado" id="res">
+    <div class="ico">⌖</div>
+    <div class="detalle">Esperando el primer pase</div>
+  </div>
+
+  <button class="boton fantasma reimprimir" id="b-reimprimir" hidden>
+    Imprimir etiqueta de nuevo
+  </button>
+
+  <div class="ultimos">
+    <div class="rotulo">Últimos en llegar</div>
+    <div id="lista-ultimos"></div>
+  </div>
+
+  <div class="marca">
+    <span>Powered by</span>
+    <img src="/img/quantum.png" alt="Quantum Marketing &amp; Advertising">
+  </div>
+</div>
+
+<script src="/lib/html5-qrcode.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var lector = null;
+  var modoActual = 'camara';
+  var vigilante = null;
+  var ultimaLectura = { codigo: null, cuando: 0 };
+  var ultimoCodigo = null;     // para reimprimir sin volver a escanear
+  var imprimir = false;
+  var ventanaEtiqueta = null;
+
+  var TIPO_TEXTO = {
+    general: 'Invitado general',
+    proveedor: 'Cadena de valor · Proveedor',
+  };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function api(ruta, opts) {
+    return fetch('/api' + ruta, Object.assign({
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+    }, opts || {})).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) { d.__estado = r.status; throw d; }
+        return d;
+      });
+    });
+  }
+
+  /* ---------- Acceso ---------- */
+
+  function entrar() {
+    var b = $('a-entrar');
+    b.disabled = true;
+    b.textContent = 'Entrando…';
+    $('a-error').classList.remove('ver');
+
+    api('/entrar', { method: 'POST', body: JSON.stringify({
+      email: $('a-email').value, clave: $('a-clave').value,
+    })})
+      .then(function (d) { abrir(d.usuario); })
+      .catch(function (d) {
+        b.disabled = false;
+        b.textContent = 'Entrar';
+        $('a-error').textContent = (d && d.error) || 'No se pudo entrar';
+        $('a-error').classList.add('ver');
+      });
+  }
+
+  function abrir(u) {
+    $('acceso').hidden = true;
+    $('modulo').hidden = false;
+    $('p-quien').textContent = u.nombre || u.email;
+
+    var guardado = 'camara';
+    try { guardado = localStorage.getItem('cotuco_puerta_modo') || 'camara'; }
+    catch (e) {}
+    cambiarModo(guardado);
+
+    marcador();
+    setInterval(marcador, 20000);
+  }
+
+  $('a-entrar').addEventListener('click', entrar);
+  $('a-clave').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') entrar();
+  });
+  $('a-email').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') $('a-clave').focus();
+  });
+  $('p-salir').addEventListener('click', function (ev) {
+    ev.preventDefault();
+    api('/salir', { method: 'POST' }).finally(function () { location.reload(); });
+  });
+
+  /* ---------- Modo de lectura ---------- */
+
+  function cambiarModo(modo) {
+    modoActual = modo;
+    document.querySelectorAll('.modo[data-modo]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-modo') === modo);
+    });
+    $('camara').hidden = modo !== 'camara';
+    $('zona-lector').hidden = modo !== 'lector';
+    try { localStorage.setItem('cotuco_puerta_modo', modo); } catch (e) {}
+
+    if (modo === 'lector') {
+      // La cámara se apaga: encendida sin usarse gasta batería y
+      // calienta el aparato durante todo el evento.
+      //
+      // Va en try/catch además del .catch: si la cámara nunca llegó a
+      // encender —permiso negado, aparato sin cámara— `stop()` revienta
+      // en el acto en vez de devolver una promesa fallida, y eso tiraba
+      // el cambio a lector justo cuando es la única salida que queda.
+      if (lector) {
+        try {
+          lector.stop().then(function () { lector.clear(); lector = null; })
+            .catch(function () { lector = null; });
+        } catch (e) { lector = null; }
+      }
+      arrancarVigilante();
+      $('l-codigo').focus();
+      pintar('', '⌨', '', 'Listo para leer');
+    } else {
+      detenerVigilante();
+      abrirCamara();
+      pintar('', '⌖', '', 'Apunta al código del pase');
+    }
+  }
+
+  /**
+   * Mantiene el campo enfocado.
+   *
+   * En la puerta nadie mira la pantalla. Si un toque accidental quita el
+   * foco, las lecturas siguientes se pierden sin que nadie lo note hasta
+   * que se forma una fila.
+   */
+  function arrancarVigilante() {
+    if (vigilante) return;
+    vigilante = setInterval(function () {
+      if (modoActual !== 'lector') return;
+      var a = document.activeElement;
+      if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
+      $('l-codigo').focus();
+    }, 1200);
+  }
+
+  function detenerVigilante() {
+    if (vigilante) { clearInterval(vigilante); vigilante = null; }
+  }
+
+  document.querySelectorAll('.modo[data-modo]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      cambiarModo(this.getAttribute('data-modo'));
+    });
+  });
+
+  $('l-codigo').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    var v = this.value.trim();
+    this.value = '';
+    if (v) registrar(v);
+  });
+
+  document.addEventListener('click', function () {
+    if (modoActual === 'lector') {
+      setTimeout(function () { $('l-codigo').focus(); }, 50);
+    }
+  });
+
+  function abrirCamara() {
+    if (lector || typeof Html5Qrcode === 'undefined') return;
+    lector = new Html5Qrcode('camara', { verbose: false });
+    lector.start({ facingMode: 'environment' },
+      { fps: 12, qrbox: { width: 230, height: 230 } },
+      function (texto) {
+        var m = String(texto).trim().toUpperCase()
+          .match(/[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}/);
+        if (m) registrar(m[0]);
+      }, function () {})
+      .catch(function () {
+        pintar('avisa', '!', '',
+          'Sin acceso a la cámara. Usa el lector o escribe el código.');
+      });
+  }
+
+  /* ---------- Impresión de etiquetas ---------- */
+
+  function pintarImpresion() {
+    $('chk-impresion').checked = imprimir;
+    $('sw-impresion').classList.toggle('on', imprimir);
+  }
+
+  $('sw-impresion').addEventListener('change', function () {
+    imprimir = $('chk-impresion').checked;
+    try {
+      localStorage.setItem('cotuco_puerta_etiqueta', imprimir ? 'si' : 'no');
+    } catch (e) {}
+    pintarImpresion();
+  });
+
+  /**
+   * Abre la etiqueta en una ventana aparte y la manda a imprimir sola.
+   *
+   * Se reutiliza SIEMPRE la misma ventana —de ahí el nombre fijo— porque
+   * si no, una noche de doscientas personas deja doscientas pestañas
+   * abiertas y la computadora de la mesa se arrastra.
+   */
+  function abrirEtiqueta(codigo) {
+    if (!codigo) return;
+    var url = '/etiqueta?codigo=' + encodeURIComponent(codigo) + '&auto=1';
+    try {
+      ventanaEtiqueta = window.open(url, 'etiquetaCotuco',
+        'width=420,height=620');
+      if (ventanaEtiqueta) ventanaEtiqueta.focus();
+    } catch (e) { ventanaEtiqueta = null; }
+
+    if (!ventanaEtiqueta) {
+      pintar('avisa', '⎙', '',
+        'El navegador bloqueó la ventana de la etiqueta. ' +
+        'Permite las ventanas emergentes de este sitio.');
+    }
+  }
+
+  $('b-reimprimir').addEventListener('click', function () {
+    abrirEtiqueta(ultimoCodigo);
+  });
+
+  /* ---------- Registrar llegada ---------- */
+
+  function registrar(codigo) {
+    var c = String(codigo).toUpperCase().replace(/[^0-9A-Z]/g, '');
+
+    // La cámara lee el mismo código muchas veces por segundo. Sin este
+    // freno, una persona parada frente al lector dispararía decenas de
+    // peticiones, la pantalla parpadearía sin parar y —peor— la
+    // impresora escupiría una etiqueta tras otra.
+    var ahora = Date.now();
+    if (c === ultimaLectura.codigo && ahora - ultimaLectura.cuando < 2500) return;
+    ultimaLectura = { codigo: c, cuando: ahora };
+
+    api('/llegada', { method: 'POST', body: JSON.stringify({ codigo: c }) })
+      .then(function (d) { mostrar(d, c); marcador(); })
+      .catch(function (d) {
+        if (d && d.__estado === 401) { location.reload(); return; }
+        pintar('mal', '✕', '', 'No se pudo registrar. Inténtalo otra vez.');
+      });
+  }
+
+  function mostrar(d, codigo) {
+    var a = d.asistente;
+    var nombre = a ? a.nombre : '';
+    var detalle = a
+      ? [a.cargo, a.organismo].filter(Boolean).join(' · ')
+      : '';
+
+    ultimoCodigo = a ? a.codigo : null;
+    $('b-reimprimir').hidden = !ultimoCodigo || !d.ok;
+
+    if (d.resultado === 'entrada') {
+      pintar('bien', '✓', nombre, detalle,
+        '<span class="chip oro">' + esc(TIPO_TEXTO[a.tipo] || '') + '</span>');
+      if (imprimir) abrirEtiqueta(a.codigo);
+
+    } else if (d.resultado === 'repetido') {
+      // No se bloquea: la gente sale a una llamada y vuelve a entrar.
+      pintar('avisa', '↻', nombre, 'Ya había entrado antes · ' + detalle,
+        '<span class="chip oro">' + esc(TIPO_TEXTO[a.tipo] || '') + '</span>');
+
+    } else if (d.resultado === 'cancelado') {
+      pintar('mal', '✕', nombre,
+        'Este registro fue cancelado. Consulta con el organizador.');
+
+    } else {
+      pintar('mal', '?', '', 'Ese código no corresponde a ningún pase');
+    }
+
+    sonar(d.resultado);
+    if (navigator.vibrate) {
+      navigator.vibrate(d.resultado === 'entrada' ? 55 : [90, 60, 90]);
+    }
+  }
+
+  function pintar(clase, ico, quien, detalle, extra) {
+    $('res').className = 'resultado ' + (clase || '');
+    $('res').innerHTML =
+      '<div class="ico">' + ico + '</div>' +
+      (quien ? '<div class="quien">' + esc(quien) + '</div>' : '') +
+      '<div class="detalle">' + esc(detalle) + '</div>' +
+      (extra || '');
+  }
+
+  /* ---------- Marcador ---------- */
+
+  var yaSugeridoImprimir = false;
+
+  function marcador() {
+    api('/puerta/resumen').then(function (d) {
+      var r = d.resumen || {};
+      $('m-llegaron').textContent = r.llegaron != null ? r.llegaron : '·';
+      $('m-total').textContent = r.registrados != null ? r.registrados : '·';
+      $('m-faltan').textContent = r.registrados != null
+        ? Math.max(0, r.registrados - r.llegaron) : '·';
+
+      // Si el panel dejó encendida la impresión en puerta, se respeta la
+      // primera vez; de ahí en adelante manda lo que eligió quien opera,
+      // porque es quien sabe si la impresora está conectada.
+      if (!yaSugeridoImprimir) {
+        yaSugeridoImprimir = true;
+        var guardado = null;
+        try { guardado = localStorage.getItem('cotuco_puerta_etiqueta'); }
+        catch (e) {}
+        imprimir = guardado != null ? guardado === 'si' : !!d.etiqueta_en_puerta;
+        pintarImpresion();
+      }
+
+      $('lista-ultimos').innerHTML = (d.ultimos || []).map(function (u) {
+        return '<div class="ultimo"><span class="n">' + esc(u.nombre) +
+          '<div class="e">' + esc(u.organismo || '') +
+          (u.tipo === 'proveedor' ? ' · proveedor' : '') +
+          '</div></span><span class="h">' + esc(u.hora) + '</span></div>';
+      }).join('') || '<div class="ay">Nadie ha llegado todavía.</div>';
+    }).catch(function () {});
+  }
+
+  /* ---------- Sonido ----------
+   *
+   * El personal no mira la pantalla cuando llega gente en grupo. Oír la
+   * diferencia entre «pasa» y «revisa» vale más que leer un mensaje.
+   */
+
+  var audio = null, salida = null, conSonido = true;
+
+  function voz(frec, inicio, dur, vol, forma, detune) {
+    if (!audio) return;
+    var o = audio.createOscillator();
+    var g = audio.createGain();
+    o.type = forma || 'sine';
+    o.frequency.value = frec;
+    if (detune) o.detune.value = detune;
+
+    var t = audio.currentTime + inicio;
+    // Ataque suave y caída larga: lo que convierte un pitido en campana.
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(salida);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+
+  /** Una campana: la nota más sus armónicos, que es lo que da el brillo. */
+  function campana(f, inicio, vol) {
+    voz(f,       inicio, 1.4,  vol,        'sine');
+    voz(f * 2,   inicio, 0.9,  vol * .38,  'sine', 4);
+    voz(f * 3,   inicio, 0.55, vol * .16,  'sine', -5);
+    voz(f * 4.2, inicio, 0.3,  vol * .07,  'sine');
+  }
+
+  function sonar(resultado) {
+    if (!conSonido || !audio) return;
+
+    if (resultado === 'entrada') {
+      // Do-mi-sol subiendo: resuelto y optimista, con un bajo que le da
+      // peso para que no suene delgado.
+      campana(1046.50, 0,    .20);
+      campana(1318.51, .085, .18);
+      campana(1567.98, .17,  .22);
+      voz(261.63, 0, .7, .07, 'triangle');
+    } else if (resultado === 'repetido') {
+      campana(880, 0, .14);
+    } else {
+      // Dos graves con roce de semitono: interrumpe sin ser agresivo.
+      voz(220.00, 0,   .5, .17, 'triangle');
+      voz(233.08, 0,   .5, .13, 'triangle');
+      voz(174.61, .14, .6, .15, 'triangle');
+    }
+  }
+
+  /**
+   * El navegador no deja sonar hasta que alguien toca la pantalla. Por
+   * eso el audio se prepara con el primer toque: si se intentara antes,
+   * quedaría bloqueado en silencio y nadie sabría por qué.
+   */
+  function prepararAudio() {
+    if (audio) return;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audio = new AC();
+      if (audio.state === 'suspended') audio.resume();
+
+      // Reverberación corta: hace que el sonido ocurra en un espacio y
+      // no dentro de la bocina. Se genera, no se descarga.
+      var seco = audio.createGain();
+      var humedo = audio.createGain();
+      var rev = audio.createConvolver();
+
+      var largo = Math.floor(audio.sampleRate * 1.1);
+      var imp = audio.createBuffer(2, largo, audio.sampleRate);
+      for (var ch = 0; ch < 2; ch++) {
+        var datos = imp.getChannelData(ch);
+        for (var n = 0; n < largo; n++) {
+          datos[n] = (Math.random() * 2 - 1) * Math.pow(1 - n / largo, 2.6);
+        }
+      }
+      rev.buffer = imp;
+
+      seco.gain.value = .82;
+      humedo.gain.value = .3;
+      salida = audio.createGain();
+      salida.connect(seco);
+      salida.connect(rev);
+      rev.connect(humedo);
+      seco.connect(audio.destination);
+      humedo.connect(audio.destination);
+    } catch (e) { audio = null; }
+  }
+
+  ['click', 'touchstart', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, prepararAudio, { once: true });
+  });
+
+  try { conSonido = localStorage.getItem('cotuco_puerta_sonido') !== 'no'; }
+  catch (e) {}
+
+  function pintarSonido() {
+    var b = $('btn-sonido');
+    b.classList.toggle('on', conSonido);
+    b.textContent = conSonido ? '♪' : '✕';
+  }
+
+  $('btn-sonido').addEventListener('click', function () {
+    conSonido = !conSonido;
+    try { localStorage.setItem('cotuco_puerta_sonido', conSonido ? 'si' : 'no'); }
+    catch (e) {}
+    pintarSonido();
+    if (conSonido) { prepararAudio(); sonar('entrada'); }
+  });
+  pintarSonido();
+
+  /* ---------- Arranque ---------- */
+
+  api('/sesion').then(function (d) {
+    if (d.usuario) abrir(d.usuario);
+    else $('a-email').focus();
+  }).catch(function () { $('a-email').focus(); });
+})();
+</script>
+</body>
+</html>

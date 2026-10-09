@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#100E0B">
+<meta name="robots" content="noindex">
+<title>Mesa de registro · COTUCO</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/ui.css">
+<style>
+/* La mesa de registro: alguien de pie, con fila enfrente y una sola
+   mano libre. Todo lo que hace falta cabe en una pantalla y el campo
+   que sigue siempre está a un Enter de distancia. */
+
+.barra-sup {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--linea); margin-bottom: 18px;
+}
+.barra-sup .quien { font-size: 13px; color: var(--tenue) }
+
+.pestanas { display: flex; gap: 8px; margin-bottom: 16px }
+.pestana {
+  flex: 1; background: var(--campo); border: 1px solid var(--linea);
+  color: var(--tenue); border-radius: var(--r); font-family: inherit;
+  font-size: 13.5px; font-weight: 700; padding: 12px; cursor: pointer;
+}
+.pestana.on { background: var(--acento); border-color: var(--acento); color: var(--tinta) }
+
+.dos { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px }
+@media (max-width: 460px) { .dos { grid-template-columns: 1fr } }
+
+.recien {
+  border: 2px solid var(--bien); background: rgba(127,184,122,.12);
+  border-radius: var(--r-grande); padding: 20px; text-align: center;
+  margin-bottom: 16px;
+}
+.recien .quien { font-size: 20px; font-weight: 900; line-height: 1.2 }
+.recien .donde { font-size: 13px; color: var(--tenue); margin-top: 4px }
+.recien .codigo {
+  font-size: 26px; font-weight: 900; letter-spacing: .2em;
+  color: var(--acento-alto); margin-top: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.recien .acciones { display: grid; gap: 8px; margin-top: 14px }
+
+.resultado-b {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 13px 0; border-top: 1px solid var(--linea-suave);
+}
+.resultado-b:first-child { border-top: none }
+.resultado-b .n { font-size: 15px; font-weight: 700; line-height: 1.25 }
+.resultado-b .d { font-size: 12.5px; color: var(--apagado); margin-top: 2px }
+.resultado-b .c {
+  font-size: 12px; font-weight: 800; letter-spacing: .1em;
+  color: var(--acento-alto); margin-top: 4px;
+}
+.resultado-b .bot { flex: 0 0 auto; display: grid; gap: 6px }
+
+.acceso { max-width: 380px; margin: 60px auto 0 }
+.acceso .escudo { width: 190px; display: block; margin: 0 auto 16px }
+</style>
+</head>
+<body>
+
+<!-- ===== Acceso del personal ===== -->
+<div class="marco acceso" id="acceso">
+  <div class="tarjeta">
+    <img class="escudo" src="/img/cotuco-blanco.png" alt="COTUCO">
+    <h2 style="text-align:center">Mesa de registro</h2>
+    <p class="ay" style="text-align:center;margin:4px 0 18px">COTUCO</p>
+
+    <div class="campo">
+      <label for="a-email">Correo</label>
+      <input id="a-email" type="email" autocomplete="username"
+             autocapitalize="off" enterkeyhint="next">
+    </div>
+    <div class="campo">
+      <label for="a-clave">Contraseña</label>
+      <input id="a-clave" type="password" autocomplete="current-password"
+             enterkeyhint="go">
+    </div>
+    <div class="mensaje mal" id="a-error"></div>
+    <button class="boton" id="a-entrar">Entrar</button>
+  </div>
+</div>
+
+<!-- ===== Módulo ===== -->
+<div class="marco" id="modulo" hidden>
+  <div class="barra-sup">
+    <strong>Mesa de registro</strong>
+    <span class="quien"><span id="p-quien"></span> ·
+      <a href="#" id="p-salir" style="color:var(--acento-alto)">salir</a></span>
+  </div>
+
+  <div class="cifras" style="margin-bottom:16px">
+    <div class="cifra"><div class="v" id="m-total">·</div>
+      <div class="k">Registrados</div></div>
+    <div class="cifra"><div class="v" id="m-llegaron">·</div>
+      <div class="k">Llegaron</div></div>
+    <div class="cifra"><div class="v" id="m-mesa">·</div>
+      <div class="k">En mesa</div></div>
+  </div>
+
+  <div class="pestanas">
+    <button class="pestana on" data-vista="alta">Registrar</button>
+    <button class="pestana" data-vista="buscar">Buscar / reimprimir</button>
+  </div>
+
+  <!-- ---- Alta en sitio ---- -->
+  <div id="v-alta">
+    <div id="recien"></div>
+
+    <div class="tarjeta">
+      <div class="campo">
+        <label for="f-nombre">Nombre completo</label>
+        <input id="f-nombre" type="text" autocapitalize="words"
+               enterkeyhint="next" placeholder="Nombre y apellidos">
+        <div class="error-txt" id="e-nombre"></div>
+      </div>
+
+      <div class="campo">
+        <label for="f-organismo">Organismo o empresa</label>
+        <input id="f-organismo" type="text" autocapitalize="words"
+               enterkeyhint="next">
+        <div class="error-txt" id="e-organismo"></div>
+      </div>
+
+      <div class="dos">
+        <div class="campo">
+          <label for="f-cargo">Cargo <span class="opc">— opc.</span></label>
+          <input id="f-cargo" type="text" autocapitalize="sentences"
+                 enterkeyhint="next">
+          <div class="error-txt" id="e-cargo"></div>
+        </div>
+        <div class="campo">
+          <label for="f-telefono">Teléfono <span class="opc">— opc.</span></label>
+          <input id="f-telefono" type="tel" inputmode="numeric"
+                 enterkeyhint="next" placeholder="664 123 4567">
+          <div class="error-txt" id="e-telefono"></div>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="f-email">Correo <span class="opc">— opcional</span></label>
+        <input id="f-email" type="email" autocapitalize="off"
+               spellcheck="false" enterkeyhint="done"
+               placeholder="correo@empresa.mx">
+        <div class="error-txt" id="e-email"></div>
+      </div>
+
+      <div class="campo" id="campo-tipo">
+        <label>Tipo de asistente</label>
+        <div class="opciones">
+          <label class="opcion" data-tipo="general">
+            <input type="radio" name="tipo" value="general">
+            <span><span class="t">Invitado general</span></span>
+          </label>
+          <label class="opcion" data-tipo="proveedor">
+            <input type="radio" name="tipo" value="proveedor">
+            <span><span class="t">Cadena de valor · Proveedor</span></span>
+          </label>
+        </div>
+        <div class="error-txt" id="e-tipo"></div>
+      </div>
+
+      <label class="impresion" style="display:flex;align-items:center;gap:11px;
+        background:var(--campo);border:1px solid var(--linea);
+        border-radius:var(--r);padding:11px 14px;margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="chk-etiqueta" checked
+               style="width:auto;accent-color:var(--acento)">
+        <span style="font-size:13.5px;font-weight:700">
+          Imprimir etiqueta al registrar</span>
+      </label>
+
+      <div class="mensaje mal" id="f-error"></div>
+
+      <button class="boton" id="f-enviar">Registrar y entregar carnet</button>
+    </div>
+  </div>
+
+  <!-- ---- Búsqueda ---- -->
+  <div id="v-buscar" hidden>
+    <div class="tarjeta">
+      <div class="campo" style="margin-bottom:10px">
+        <label for="b-q">Buscar</label>
+        <input id="b-q" type="search" autocomplete="off"
+               placeholder="Nombre, empresa, correo, teléfono o código">
+      </div>
+      <p class="ay" id="b-aviso">Escribe al menos dos letras.</p>
+      <div id="b-resultados" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div class="marca">
+    <span>Powered by</span>
+    <img src="/img/quantum.png" alt="Quantum Marketing &amp; Advertising">
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var CAMPOS = ['nombre', 'organismo', 'cargo', 'telefono', 'email'];
+  var TIPO_TEXTO = {
+    general: 'Invitado general',
+    proveedor: 'Cadena de valor · Proveedor',
+  };
+  var ventanaEtiqueta = null;
+  var tecleo = null;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function api(ruta, opts) {
+    return fetch('/api' + ruta, Object.assign({
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+    }, opts || {})).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) { d.__estado = r.status; throw d; }
+        return d;
+      });
+    });
+  }
+
+  /* ---------- Acceso ---------- */
+
+  function entrar() {
+    var b = $('a-entrar');
+    b.disabled = true;
+    b.textContent = 'Entrando…';
+    $('a-error').classList.remove('ver');
+
+    api('/entrar', { method: 'POST', body: JSON.stringify({
+      email: $('a-email').value, clave: $('a-clave').value,
+    })})
+      .then(function (d) { abrir(d.usuario); })
+      .catch(function (d) {
+        b.disabled = false;
+        b.textContent = 'Entrar';
+        $('a-error').textContent = (d && d.error) || 'No se pudo entrar';
+        $('a-error').classList.add('ver');
+      });
+  }
+
+  function abrir(u) {
+    $('acceso').hidden = true;
+    $('modulo').hidden = false;
+    $('p-quien').textContent = u.nombre || u.email;
+    $('f-nombre').focus();
+    marcador();
+    setInterval(marcador, 25000);
+  }
+
+  $('a-entrar').addEventListener('click', entrar);
+  $('a-clave').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') entrar();
+  });
+  $('a-email').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') $('a-clave').focus();
+  });
+  $('p-salir').addEventListener('click', function (ev) {
+    ev.preventDefault();
+    api('/salir', { method: 'POST' }).finally(function () { location.reload(); });
+  });
+
+  /* ---------- Pestañas ---------- */
+
+  document.querySelectorAll('.pestana').forEach(function (p) {
+    p.addEventListener('click', function () {
+      var v = this.getAttribute('data-vista');
+      document.querySelectorAll('.pestana').forEach(function (o) {
+        o.classList.toggle('on', o === p);
+      });
+      $('v-alta').hidden = v !== 'alta';
+      $('v-buscar').hidden = v !== 'buscar';
+      (v === 'alta' ? $('f-nombre') : $('b-q')).focus();
+    });
+  });
+
+  /* ---------- Tipo ---------- */
+
+  document.querySelectorAll('.opcion').forEach(function (op) {
+    op.addEventListener('click', function () {
+      document.querySelectorAll('.opcion').forEach(function (o) {
+        o.classList.remove('on');
+      });
+      op.classList.add('on');
+      $('campo-tipo').classList.remove('malo');
+      $('e-tipo').classList.remove('ver');
+    });
+  });
+
+  function tipoElegido() {
+    var r = document.querySelector('input[name="tipo"]:checked');
+    return r ? r.value : '';
+  }
+
+  /* ---------- Etiqueta ---------- */
+
+  /**
+   * Se reutiliza SIEMPRE la misma ventana —de ahí el nombre fijo— porque
+   * si no, un día de doscientas personas deja doscientas pestañas
+   * abiertas y la computadora de la mesa se arrastra.
+   */
+  function abrirEtiqueta(codigo) {
+    if (!codigo) return;
+    try {
+      ventanaEtiqueta = window.open(
+        '/etiqueta?codigo=' + encodeURIComponent(codigo) + '&auto=1',
+        'etiquetaCotuco', 'width=420,height=620');
+      if (ventanaEtiqueta) ventanaEtiqueta.focus();
+    } catch (e) { ventanaEtiqueta = null; }
+  }
+
+  /* ---------- Alta ---------- */
+
+  function limpiarErrores() {
+    CAMPOS.forEach(function (c) {
+      var campo = $('f-' + c);
+      if (campo) campo.parentElement.classList.remove('malo');
+      var e = $('e-' + c);
+      if (e) { e.textContent = ''; e.classList.remove('ver'); }
+    });
+    $('campo-tipo').classList.remove('malo');
+    $('e-tipo').classList.remove('ver');
+    $('f-error').classList.remove('ver');
+  }
+
+  function limpiarFormulario() {
+    CAMPOS.forEach(function (c) { $('f-' + c).value = ''; });
+    document.querySelectorAll('.opcion').forEach(function (o) {
+      o.classList.remove('on');
+    });
+    document.querySelectorAll('input[name="tipo"]').forEach(function (r) {
+      r.checked = false;
+    });
+    $('f-nombre').focus();
+  }
+
+  function enviar() {
+    limpiarErrores();
+    var b = $('f-enviar');
+    b.disabled = true;
+    b.textContent = 'Registrando…';
+
+    var cuerpo = { tipo: tipoElegido() };
+    CAMPOS.forEach(function (c) { cuerpo[c] = $('f-' + c).value; });
+
+    api('/mesa/registro', { method: 'POST', body: JSON.stringify(cuerpo) })
+      .then(function (d) {
+        b.disabled = false;
+        b.textContent = 'Registrar y entregar carnet';
+        mostrarRecien(d.asistente, d.yaEstaba);
+        limpiarFormulario();
+        marcador();
+        if ($('chk-etiqueta').checked) abrirEtiqueta(d.asistente.codigo);
+      })
+      .catch(function (d) {
+        b.disabled = false;
+        b.textContent = 'Registrar y entregar carnet';
+
+        if (d && d.__estado === 401) { location.reload(); return; }
+
+        if (d && d.errores) {
+          Object.keys(d.errores).forEach(function (c) {
+            if (c === 'tipo') $('campo-tipo').classList.add('malo');
+            else {
+              var campo = $('f-' + c);
+              if (campo) campo.parentElement.classList.add('malo');
+            }
+            var e = $('e-' + c);
+            if (e) { e.textContent = d.errores[c]; e.classList.add('ver'); }
+          });
+          var sueltos = Object.keys(d.errores).filter(function (c) {
+            return !$('e-' + c);
+          });
+          if (sueltos.length) {
+            $('f-error').textContent = sueltos.map(function (c) {
+              return d.errores[c];
+            }).join(' · ');
+            $('f-error').classList.add('ver');
+          }
+          return;
+        }
+
+        $('f-error').textContent = (d && d.error) || 'No se pudo registrar.';
+        $('f-error').classList.add('ver');
+      });
+  }
+
+  function mostrarRecien(a, yaEstaba) {
+    $('recien').innerHTML =
+      '<div class="recien">' +
+        '<div class="rotulo">' +
+          (yaEstaba ? 'Ya estaba registrado' : 'Registrado') + '</div>' +
+        '<div class="quien">' + esc(a.nombre) + '</div>' +
+        '<div class="donde">' +
+          esc([a.cargo, a.organismo].filter(Boolean).join(' · ')) + '</div>' +
+        '<div style="margin-top:8px"><span class="chip oro">' +
+          esc(TIPO_TEXTO[a.tipo] || '') + '</span></div>' +
+        '<div class="codigo">' + esc(a.codigo) + '</div>' +
+        '<div class="acciones">' +
+          '<button class="boton fantasma chico" id="r-etiqueta" ' +
+            'style="width:100%">Imprimir etiqueta</button>' +
+        '</div>' +
+      '</div>';
+    $('r-etiqueta').addEventListener('click', function () {
+      abrirEtiqueta(a.codigo);
+    });
+  }
+
+  $('f-enviar').addEventListener('click', enviar);
+
+  CAMPOS.forEach(function (c, i) {
+    $('f-' + c).addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      var sig = $('f-' + CAMPOS[i + 1]);
+      if (sig) sig.focus(); else enviar();
+    });
+  });
+
+  /* ---------- Búsqueda ---------- */
+
+  function buscar() {
+    var q = $('b-q').value.trim();
+    if (q.length < 2) {
+      $('b-resultados').innerHTML = '';
+      $('b-aviso').textContent = 'Escribe al menos dos letras.';
+      return;
+    }
+
+    api('/mesa/buscar?q=' + encodeURIComponent(q)).then(function (d) {
+      var r = d.resultados || [];
+      $('b-aviso').textContent = r.length
+        ? r.length + (r.length === 1 ? ' resultado' : ' resultados')
+        : 'Nadie coincide. Regístralo en la otra pestaña.';
+
+      $('b-resultados').innerHTML = r.map(function (a) {
+        var estado = a.cancelado_en
+          ? '<span class="chip rojo">cancelado</span>'
+          : (a.llego_en ? '<span class="chip bien">ya entró</span>' : '');
+        return '<div class="resultado-b">' +
+          '<div class="n">' + esc(a.nombre) + ' ' + estado +
+            '<div class="d">' +
+              esc([a.cargo, a.organismo].filter(Boolean).join(' · ')) +
+              (a.tipo === 'proveedor' ? ' · proveedor' : '') +
+            '</div>' +
+            '<div class="c">' + esc(a.codigo) + '</div>' +
+          '</div>' +
+          '<div class="bot">' +
+            (a.cancelado_en ? '' :
+              '<button class="boton fantasma chico" data-cod="' +
+                esc(a.codigo) + '">Etiqueta</button>') +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      $('b-resultados').querySelectorAll('button[data-cod]')
+        .forEach(function (b) {
+          b.addEventListener('click', function () {
+            abrirEtiqueta(this.getAttribute('data-cod'));
+          });
+        });
+    }).catch(function (d) {
+      if (d && d.__estado === 401) { location.reload(); return; }
+      $('b-aviso').textContent = 'No se pudo buscar. Revisa la conexión.';
+    });
+  }
+
+  // Se espera a que deje de teclear: sin esta pausa, escribir «Hotel»
+  // dispara cinco consultas y la última en llegar no siempre es la de la
+  // palabra completa.
+  $('b-q').addEventListener('input', function () {
+    clearTimeout(tecleo);
+    tecleo = setTimeout(buscar, 260);
+  });
+  $('b-q').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { clearTimeout(tecleo); buscar(); }
+  });
+
+  /* ---------- Marcador ---------- */
+
+  function marcador() {
+    api('/puerta/resumen').then(function (d) {
+      var r = d.resumen || {};
+      $('m-total').textContent = r.registrados != null ? r.registrados : '·';
+      $('m-llegaron').textContent = r.llegaron != null ? r.llegaron : '·';
+      $('m-mesa').textContent = r.en_mesa != null ? r.en_mesa : '·';
+    }).catch(function () {});
+  }
+
+  /* ---------- Arranque ---------- */
+
+  api('/sesion').then(function (d) {
+    if (d.usuario) abrir(d.usuario);
+    else $('a-email').focus();
+  }).catch(function () { $('a-email').focus(); });
+})();
+</script>
+</body>
+</html>

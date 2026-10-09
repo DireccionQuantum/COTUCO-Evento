@@ -1,0 +1,25 @@
+{
+  "name": "registro-cotuco",
+  "version": "1.0.0",
+  "description": "Registro de asistentes con QR, control de acceso y etiquetas · COTUCO",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "migrate": "node src/migrar.js",
+    "usuario": "node scripts/crear-usuario.js",
+    "test": "node test/registros.js && node test/consultas.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "connect-pg-simple": "^9.0.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "express-session": "^1.18.0",
+    "helmet": "^7.1.0",
+    "pg": "^8.11.5",
+    "qrcode": "^1.5.3"
+  },
+  "engines": { "node": ">=18" }
+}

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Etiqueta · COTUCO</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   Etiqueta del carnet · Brother QL con rollo continuo DK-2205
+
+   Medidas que importan y por qué:
+
+     Papel            62.0 mm de ancho
+     Área imprimible  58.9 mm  (696 puntos a 300 dpi)
+     Margen muerto     1.55 mm por lado — el cabezal no llega ahí
+
+   Por eso la página se declara de 62 mm pero el contenido vive dentro
+   de 58 mm. Diseñar a 62 mm hace que se recorte por los costados.
+
+   El LARGO lo controlamos nosotros: el rollo es continuo y la cortadora
+   corta donde termina la página. Aquí son 42 mm, la misma medida que
+   quedó en CMIC y que entra en los portagafetes que ya tienen.
+
+   Todo va en NEGRO PURO: la impresión es térmica de un solo color y
+   cualquier color se convierte en un gris sucio. La distinción entre
+   invitado y proveedor se hace con un recuadro en negativo, no con
+   color, porque es lo único que el cabezal sabe hacer.
+   ===================================================================== */
+@page { size: 62mm 42mm; margin: 0; }
+
+:root {
+  --papel-ancho: 62mm;
+  --papel-alto: 42mm;
+  --margen: 2mm;          /* deja el contenido dentro de los 58 mm útiles */
+}
+* { box-sizing: border-box; margin: 0; padding: 0 }
+html, body { background: #eceff3 }
+body {
+  font-family: 'Archivo', Arial, sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 24px;
+}
+
+.etiqueta {
+  width: var(--papel-ancho); height: var(--papel-alto);
+  background: #fff; color: #000;
+  padding: 2.2mm var(--margen);
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+.cuerpo {
+  flex: 1; display: grid; grid-template-columns: 24mm 1fr; gap: 2.2mm;
+  align-items: center; min-height: 0;
+}
+/* El QR crece con el espacio disponible: cuanto más grande, más rápido
+   lo lee el lector de mostrador. */
+.qr { width: 24mm; height: 24mm; overflow: hidden; line-height: 0 }
+.qr canvas, .qr img {
+  width: 24mm !important; height: 24mm !important;
+  display: block; image-rendering: pixelated;
+}
+
+/* Alineado a la izquierda a propósito, y declarado aquí y no heredado:
+   el marco de la pantalla centra todo, y un bloque centrado junto al QR
+   queda con los dos bordes desiguales. Pegado al margen, los renglones
+   arrancan en la misma vertical y el gafete se lee de un vistazo. */
+.datos { min-width: 0; text-align: left }
+/* Tres renglones como tope y la letra se encoge hasta caber. Con dos
+   renglones fijos, «José Luis Villanueva Montaño» salía cortado con
+   puntos suspensivos, y un gafete con el apellido mocho no sirve. */
+.nombre {
+  font-size: 12pt; font-weight: 900; line-height: 1.02; letter-spacing: -.015em;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden; word-break: break-word;
+}
+
+.organismo {
+  font-size: 6.8pt; font-weight: 700; margin-top: 1mm; line-height: 1.12;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; word-break: break-word;
+}
+.cargo {
+  font-size: 5.4pt; font-weight: 500; color: #333; line-height: 1.1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Proveedor en negativo, invitado general en contorno. Dos formas
+   distintas, no dos colores: se distinguen a un metro y sobreviven a la
+   impresión térmica. */
+.tipo {
+  display: inline-block; margin-top: 1.2mm;
+  font-size: 5pt; font-weight: 900; letter-spacing: .1em;
+  text-transform: uppercase; padding: .5mm 1.4mm; border: .25mm solid #000;
+}
+.tipo.proveedor { background: #000; color: #fff }
+
+.codigo {
+  font-size: 7.4pt; font-weight: 900; letter-spacing: .13em; margin-top: 1.1mm;
+}
+
+/* Pie centrado: la marca de Quantum tiene el renglón completo. */
+.pie {
+  display: flex; align-items: center; justify-content: center;
+  gap: 1.8mm; border-top: .3mm solid #000; padding-top: 1.2mm; margin-top: .8mm;
+}
+.pie .aviso {
+  font-size: 4.6pt; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: #333;
+}
+.pie img { height: 4mm; width: auto; display: block }
+
+/* ---------- Pantalla, no se imprime ---------- */
+.marco { text-align: center }
+.regla {
+  font-size: 11px; color: #5a6675; margin-bottom: 10px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase;
+}
+.papel {
+  background: #fff; display: inline-block;
+  box-shadow: 0 8px 28px rgba(0,0,0,.18); border-radius: 3px;
+}
+.acciones { margin-top: 18px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap }
+.acciones button {
+  background: #111; color: #fff; border: none; padding: 12px 22px; border-radius: 9px;
+  font-family: 'Archivo', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: .15s;
+}
+.acciones button:hover { background: #333 }
+.acciones .linea { background: #fff; color: #111; border: 1px solid #c8d0d9 }
+.acciones .linea:hover { background: #f2f5f8 }
+.aviso-pantalla {
+  font-size: 12.5px; color: #54606e; margin: 16px auto 0; max-width: 380px;
+  line-height: 1.65; background: #fff; border-radius: 12px; padding: 14px 18px;
+  border: 1px solid #dde3ea; text-align: left;
+}
+.aviso-pantalla b { color: #1e2933 }
+.fallo {
+  background: #fff3f1; border: 1px solid #e8b4ab; color: #8a2f20;
+  border-radius: 12px; padding: 14px 18px; margin: 16px auto 0; max-width: 380px;
+  font-size: 13px; text-align: left; display: none;
+}
+.fallo.ver { display: block }
+
+@media print {
+  /* UNA SOLA HOJA.
+     Tres cosas la provocaban:
+
+     1. `page-break-after:always` en la etiqueta forzaba una hoja después.
+        Sirve en un lote, donde hay muchas; aquí sobra.
+
+     2. Los controles de pantalla, aunque ocultos, seguían contando para
+        la altura del documento.
+
+     3. El navegador decide cuántas páginas por la altura de <html> y
+        <body>, no por lo que se ve. Se les fija una altura menor que el
+        papel para que no quede nada que paginar. */
+  html {
+    background: #fff; margin: 0; padding: 0;
+    width: 62mm; height: 40mm; max-height: 40mm; overflow: hidden;
+  }
+  body {
+    background: #fff; margin: 0; padding: 0; display: block;
+    width: 62mm; height: 40mm; max-height: 40mm; overflow: hidden;
+    min-height: 0;
+  }
+  body > * { display: none !important }
+  body > .marco { display: block !important }
+  .regla, .acciones, .aviso-pantalla, .fallo { display: none !important }
+  .papel { box-shadow: none; display: block; border-radius: 0; margin: 0 }
+  .etiqueta {
+    page-break-after: avoid; break-after: avoid;
+    page-break-inside: avoid; break-inside: avoid;
+  }
+  .etiqueta * { page-break-inside: avoid; break-inside: avoid }
+}
+</style>
+</head>
+<body>
+
+<div class="marco">
+  <div class="regla">62 × 42 mm · área útil 58 mm · rollo continuo</div>
+
+  <div class="papel">
+    <div class="etiqueta">
+      <div class="cuerpo">
+        <div class="qr" id="qr"></div>
+        <div class="datos">
+          <div class="nombre" id="nombre">—</div>
+          <div class="organismo" id="organismo"></div>
+          <div class="cargo" id="cargo"></div>
+          <div id="tipo-caja"></div>
+          <div class="codigo" id="codigo">—</div>
+        </div>
+      </div>
+
+      <div class="pie">
+        <span class="aviso">Powered by</span>
+        <img src="/img/quantum-negro.png" alt="Quantum Marketing">
+      </div>
+    </div>
+  </div>
+
+  <div class="acciones">
+    <button id="imprimir">Imprimir</button>
+    <button class="linea" id="cerrar">Cerrar</button>
+  </div>
+
+  <div class="fallo" id="fallo"></div>
+
+  <div class="aviso-pantalla">
+    <b>Antes de imprimir:</b> elige la Brother QL, papel de <b>62 mm</b>,
+    y desactiva márgenes y escalado. Si el navegador ofrece «ajustar al área
+    imprimible», déjalo apagado: la etiqueta ya está calculada para los
+    58 mm que alcanza el cabezal.
+  </div>
+</div>
+
+<script src="/lib/qrcode.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var q = new URLSearchParams(location.search);
+  var auto = q.get('auto') === '1';
+
+  var TIPO_TEXTO = { general: 'Invitado', proveedor: 'Proveedor' };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  /**
+   * Encoge la letra hasta que el texto quepa en su caja.
+   *
+   * Se mide en vez de contar caracteres: «Guillermo Lara» y
+   * «MMMMMMMMMMMMMM» tienen el mismo largo y ocupan muy distinto, así
+   * que una regla por número de letras recorta a unos y deja hueco a
+   * otros. Aquí se baja de dos décimas en dos décimas hasta que el
+   * contenido deja de desbordar la caja recortada.
+   */
+  function ajustar(el, desde, hasta) {
+    var t = desde;
+    el.style.fontSize = t + 'pt';
+    while (el.scrollHeight > el.clientHeight + 1 && t > hasta) {
+      t -= 0.2;
+      el.style.fontSize = t.toFixed(1) + 'pt';
+    }
+  }
+
+  function pintar(a) {
+    var nombre = a.nombre || '—';
+    var el = $('nombre');
+    el.textContent = nombre;
+
+    $('organismo').textContent = a.organismo || '';
+    $('cargo').textContent = a.cargo || '';
+    $('codigo').textContent = a.codigo || '';
+
+    $('tipo-caja').innerHTML = a.tipo
+      ? '<span class="tipo ' + esc(a.tipo) + '">' +
+        esc(TIPO_TEXTO[a.tipo] || '') + '</span>'
+      : '';
+
+    document.title = 'Etiqueta ' + (a.codigo || '');
+
+    // El ajuste va después de poner todo el texto: medir antes daría la
+    // altura de una caja que todavía no tiene su contenido final.
+    ajustar(el, 12, 7);
+    ajustar($('organismo'), 6.8, 5);
+
+    $('qr').innerHTML = '';
+    if (window.QRCode && a.codigo) {
+      var c = document.createElement('canvas');
+      $('qr').appendChild(c);
+      // Corrección alta: el carnet se dobla y se maltrata durante el día.
+      QRCode.toCanvas(c, a.codigo, {
+        width: 300, margin: 0, errorCorrectionLevel: 'H',
+        color: { dark: '#000000', light: '#FFFFFF' },
+      });
+    }
+
+    if (auto) imprimirYavisar(a.codigo);
+  }
+
+  /**
+   * Muestra el motivo y esconde el papel.
+   *
+   * Si se deja la etiqueta en blanco con sus guiones, alguien le da a
+   * imprimir sin leer y sale una etiqueta vacía: se gasta rollo y, peor,
+   * se le cuelga al asistente un gafete sin código.
+   */
+  function fallar(msg) {
+    $('fallo').textContent = msg;
+    $('fallo').classList.add('ver');
+    document.querySelector('.papel').hidden = true;
+    document.querySelector('.regla').hidden = true;
+    $('imprimir').hidden = true;
+  }
+
+  /**
+   * Imprime y deja constancia.
+   *
+   * El aviso al servidor se manda ANTES de `print()` a propósito:
+   * `print()` bloquea el hilo mientras el diálogo está abierto, y en
+   * algunos navegadores la ventana se cierra sin devolver el control.
+   * Si el aviso fuera después, las reimpresiones no quedarían contadas.
+   */
+  function imprimirYavisar(codigo) {
+    fetch('/api/etiqueta/impresa', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo: codigo }),
+    }).catch(function () {});
+
+    // Un respiro para que la fuente y el QR terminen de pintarse: sin
+    // esto, el diálogo puede abrirse con el lienzo todavía vacío.
+    setTimeout(function () { window.print(); }, 350);
+  }
+
+  $('imprimir').addEventListener('click', function () {
+    imprimirYavisar($('codigo').textContent.trim());
+  });
+  $('cerrar').addEventListener('click', function () { window.close(); });
+
+  // En modo automático la ventana se cierra sola al terminar: si no,
+  // quedan ventanas abiertas durante todo el evento.
+  if (auto) {
+    window.addEventListener('afterprint', function () {
+      setTimeout(function () { window.close(); }, 400);
+    });
+  }
+
+  /* ---------- De dónde salen los datos ---------- */
+
+  // 1. Precarga desde la página que abrió esta ventana.
+  if (window.PRECARGA) return pintar(window.PRECARGA);
+
+  // 2. Todo en la liga: sirve para probar sin tocar la base.
+  if (q.get('nombre')) {
+    return pintar({
+      nombre: q.get('nombre'),
+      organismo: q.get('organismo'),
+      cargo: q.get('cargo'),
+      tipo: q.get('tipo'),
+      codigo: q.get('codigo'),
+    });
+  }
+
+  // 3. Sólo el código: se piden los datos al servidor. Es el camino
+  //    normal desde la puerta y desde la mesa de registro.
+  var codigo = q.get('codigo');
+  if (codigo) {
+    fetch('/api/etiqueta/' + encodeURIComponent(codigo), {
+      credentials: 'same-origin',
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; })
+          .then(function (d) { if (!r.ok) throw d; return d; });
+      })
+      .then(function (d) { pintar(d.asistente); })
+      .catch(function (d) {
+        fallar((d && d.error) ||
+          'No se pudieron cargar los datos. Vuelve a escanear el pase.');
+      });
+    return;
+  }
+
+  fallar('Esta ventana necesita un código. Escanea el pase desde la puerta ' +
+         'o desde la mesa de registro.');
+})();
+</script>
+</body>
+</html>
