@@ -53,64 +53,41 @@ body {
 
 .marca .credito {
   font-size: 1.7vh; font-weight: 700; letter-spacing: .32em;
-  text-transform: uppercase; color: var(--acento); margin-bottom: 5vh;
+  text-transform: uppercase; color: var(--acento); margin-bottom: 6vh;
 }
 
-.iso-caja {
-  position: relative; width: 26vh; height: 26vh;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 4.5vh;
+/* El logotipo en su versión horizontal, tal como está construida la
+   marca: el isotipo a la izquierda y el logotipo a su derecha.
+ *
+ * Las proporciones salen del archivo original, no se ajustaron a ojo.
+ * Ahí el isotipo mide 106 de ancho, el aire que lo separa mide 16 y el
+ * logotipo 344, sobre 120 de alto. Como el isotipo se recortó en un
+ * lienzo cuadrado de 120 —necesita serlo para girar sobre su centro y
+ * no bambolearse— lleva 7 de relleno a cada lado, y el aire se reduce a
+ * 9 para que la separación que se ve en pantalla siga siendo la misma
+ * que en el logotipo original. El total queda en 473 y de ahí salen los
+ * tres porcentajes.
+ */
+.marca .lockup {
+  display: flex; align-items: center;
+  width: min(54vw, 96vh);
 }
+.marca .lockup .iso { width: 25.37%; aspect-ratio: 1 / 1 }
+.marca .lockup .sep { width: 1.90% }
+.marca .lockup .txt { width: 72.73% }
+.marca .lockup img { width: 100%; height: auto; display: block }
 
-/* El resplandor respira detrás del isotipo. Es lo que impide que la
-   pantalla se lea como una imagen congelada cuando se mira de reojo
-   desde el otro lado del salón. */
-.iso-caja::before {
-  content: ''; position: absolute; inset: -22%;
-  background: radial-gradient(circle, rgba(121,181,76,.30) 0%,
-                              rgba(121,181,76,.10) 42%, transparent 68%);
-  animation: respira 5.5s ease-in-out infinite;
-}
-@keyframes respira {
-  0%, 100% { opacity: .55; transform: scale(.93) }
-  50%      { opacity: 1;   transform: scale(1.06) }
-}
-
-/* El isotipo gira. Tiene cinco aspas, así que una vuelta completa se lee
-   como rehilete y no como una imagen dando tumbos. Lento a propósito:
-   a esta escala, una vuelta rápida marea y distrae de la conversación,
-   que es lo que la gente está haciendo entre sorteo y sorteo. */
-.iso-caja img {
-  position: relative; width: 100%; height: 100%; object-fit: contain;
-  animation: gira 22s linear infinite;
-}
+/* Sólo gira el isotipo. Tiene cinco aspas y es simétrico, así que una
+   vuelta se lee como rehilete y no como una imagen dando tumbos. Lento
+   a propósito: a tamaño de proyector, una vuelta rápida marea y compite
+   con la conversación, que es lo que la gente está haciendo entre un
+   sorteo y el siguiente. */
+.marca .lockup .iso img { animation: gira 22s linear infinite }
 @keyframes gira { to { transform: rotate(360deg) } }
-
-/* El logotipo con un destello que lo recorre cada tantos segundos.
-   El brillo se recorta con la silueta del propio PNG, así que viaja por
-   las letras y no por una caja rectangular encima de ellas. */
-.texto-caja { position: relative; display: inline-block }
-.texto-caja img { height: 9vh; width: auto; display: block }
-.texto-caja .destello {
-  position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(105deg,
-    transparent 38%, rgba(246,238,163,.92) 50%, transparent 62%);
-  background-size: 260% 100%;
-  -webkit-mask-image: url('/img/quantum-texto.png');
-          mask-image: url('/img/quantum-texto.png');
-  -webkit-mask-size: contain; mask-size: contain;
-  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-  -webkit-mask-position: center; mask-position: center;
-  animation: destella 6s ease-in-out infinite;
-}
-@keyframes destella {
-  0%, 62%  { background-position: 190% 0 }
-  88%, 100% { background-position: -90% 0 }
-}
 
 .marca .sitio {
   font-size: 1.8vh; letter-spacing: .22em; text-transform: uppercase;
-  color: var(--apagado); margin-top: 4vh;
+  color: var(--apagado); margin-top: 6vh;
 }
 
 /* ================= Al salir un ganador ================= */
@@ -188,8 +165,7 @@ body {
 .aviso.ver { opacity: 1 }
 
 @media (prefers-reduced-motion: reduce) {
-  .iso-caja img, .iso-caja::before, .texto-caja .destello,
-  .revela, .suave { animation: none }
+  .marca .lockup .iso img, .revela, .suave { animation: none }
 }
 </style>
 </head>
@@ -259,12 +235,11 @@ body {
     $('p-centro').innerHTML =
       '<div class="marca suave">' +
         '<div class="credito">Registro, acceso y sorteo por</div>' +
-        '<div class="iso-caja">' +
-          '<img src="/img/quantum-isotipo.png" alt="">' +
-        '</div>' +
-        '<div class="texto-caja">' +
-          '<img src="/img/quantum-texto.png" alt="Quantum Marketing &amp; Advertising">' +
-          '<span class="destello"></span>' +
+        '<div class="lockup">' +
+          '<span class="iso"><img src="/img/quantum-isotipo.png" alt=""></span>' +
+          '<span class="sep"></span>' +
+          '<span class="txt"><img src="/img/quantum-texto.png" ' +
+            'alt="Quantum Marketing &amp; Advertising"></span>' +
         '</div>' +
         '<div class="sitio">quantummkt.mx</div>' +
       '</div>';
