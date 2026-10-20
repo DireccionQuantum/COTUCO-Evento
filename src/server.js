@@ -323,6 +323,29 @@ app.post('/api/asistentes/:id/cancelar', auth.exige('admin'),
     } catch (err) { next(err); }
   });
 
+/**
+ * Corregir la categoría de un asistente.
+ *
+ * Es la única escritura que abre el perfil `consulta`, y va así a
+ * propósito: COTUCO opera sus propias cuentas de seguimiento y es quien
+ * sabe quién es proveedor y quién invitado. Pedirle a un administrador
+ * que entre a corregir una pastilla el día del evento no tiene sentido.
+ *
+ * El permiso se queda acotado a esta ruta y al campo `tipo`. Cancelar,
+ * reactivar, editar la configuración y dar de alta usuarios siguen
+ * siendo de `admin`.
+ */
+app.post('/api/asistentes/:id/tipo', auth.exige('consulta'),
+  async (req, res, next) => {
+    try {
+      const r = await enTransaccion((c) =>
+        reg.cambiarTipo(c, parseInt(req.params.id, 10),
+                        req.body && req.body.tipo));
+      if (!r.ok) return res.status(422).json(r);
+      res.json(r);
+    } catch (err) { next(err); }
+  });
+
 app.post('/api/asistentes/:id/reactivar', auth.exige('admin'),
   async (req, res, next) => {
     try {

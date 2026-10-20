@@ -507,9 +507,13 @@
           var chips = [];
           if (a.cancelado_en) chips.push('<span class="chip rojo">cancelado</span>');
           else if (a.llego_en) chips.push('<span class="chip bien">entró</span>');
-          if (a.tipo === 'proveedor') {
-            chips.push('<span class="chip oro">proveedor</span>');
-          }
+          // Las dos categorías se rotulan, no sólo «proveedor». Cuando
+          // la lista se usa para corregirlas, inferir «invitado» de la
+          // ausencia de pastilla obliga a confiar en que la fila se
+          // dibujó bien; con las dos a la vista se revisa de un barrido.
+          chips.push(a.tipo === 'proveedor'
+            ? '<span class="chip oro">proveedor</span>'
+            : '<span class="chip">invitado</span>');
           if (a.origen === 'mesa') chips.push('<span class="chip">mesa</span>');
           if (a.impresiones > 1) {
             chips.push('<span class="chip ambar">' + a.impresiones +
@@ -529,16 +533,23 @@
                   .filter(Boolean).join(' · ')) + '</div>' +
               '<div class="cod">' + esc(a.codigo) + '</div>' +
             '</div>' +
-            (soloMiro ? '' :
-              '<div class="der">' +
+            // El cambio de categoría lo ven los dos perfiles; el resto
+            // de los botones sigue siendo sólo de administrador.
+            '<div class="der">' +
+              '<button class="boton fantasma chico" data-tipo="' + a.id +
+                '" data-valor="' +
+                (a.tipo === 'proveedor' ? 'general' : 'proveedor') + '">' +
+                (a.tipo === 'proveedor' ? 'Pasar a invitado'
+                                        : 'Pasar a proveedor') + '</button>' +
+              (soloMiro ? '' :
                 '<button class="boton fantasma chico" data-cod="' +
                   esc(a.codigo) + '">Etiqueta</button>' +
                 (a.cancelado_en
                   ? '<button class="boton fantasma chico" data-react="' + a.id +
                     '">Reactivar</button>'
                   : '<button class="boton fantasma chico" data-cancel="' + a.id +
-                    '">Cancelar</button>') +
-              '</div>') +
+                    '">Cancelar</button>')) +
+            '</div>' +
           '</div>';
         }).join('') || '<div class="ay">Nadie coincide con esa búsqueda.</div>';
 
@@ -552,6 +563,30 @@
             window.open('/etiqueta?codigo=' +
               encodeURIComponent(this.getAttribute('data-cod')),
               'etiquetaCotuco', 'width=420,height=620');
+          });
+        });
+        $('l-filas').querySelectorAll('button[data-tipo]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            var destino = this.getAttribute('data-valor');
+            var rotulo = destino === 'proveedor'
+              ? 'Cadena de valor · Proveedor'
+              : 'Invitado (Organismos Colegiados, Asociados e Instituciones)';
+            if (!confirm('¿Cambiar la categoría a «' + rotulo + '»?\n\n' +
+                         'Se reimprime la etiqueta si ya se había impreso.')) {
+              return;
+            }
+            // El botón se bloquea mientras va la petición: la lista se
+            // redibuja al volver, y un segundo clic sobre la fila vieja
+            // mandaría el cambio contrario.
+            var boton = this;
+            boton.disabled = true;
+            api('/asistentes/' + boton.getAttribute('data-tipo') + '/tipo',
+              { method: 'POST', body: JSON.stringify({ tipo: destino }) })
+              .then(function () { listar(); resumen(); })
+              .catch(function (d) {
+                boton.disabled = false;
+                alert((d && d.error) || 'No se pudo cambiar la categoría.');
+              });
           });
         });
         $('l-filas').querySelectorAll('button[data-cancel]').forEach(function (b) {

@@ -332,34 +332,64 @@ prueba('todo CHECK de rol cubre exactamente los roles del middleware', () => {
       ' y el middleware usa ' + auth.ROLES.join(', ')));
 });
 
-prueba('el padrón se lee con `consulta` y se cambia con `admin`', () => {
+prueba('cada ruta del servidor exige el permiso que le toca', () => {
   // El perfil de cliente tiene que poder mirar sin poder tocar. Si
   // alguien marca por descuido una ruta de escritura con el permiso de
   // lectura, COTUCO podría cancelar un registro o cerrar el formulario
   // desde su propia cuenta.
+  //
+  // Antes esta prueba recorría una lista fija de rutas conocidas, y por
+  // eso una ruta NUEVA con el permiso equivocado pasaba sin que nadie
+  // se enterara: no estaba en la lista, así que no se revisaba. Ahora
+  // se leen todas las rutas del servidor y se exige que cada una esté
+  // declarada aquí abajo. Agregar una ruta sin decidir su permiso
+  // rompe la prueba, que es justo lo que debe pasar.
   const servidor = fs.readFileSync(
     path.join(RAIZ, 'src', 'server.js'), 'utf8');
 
-  const LECTURA = ['/api/panel/resumen', '/api/asistentes', '/api/asistentes.csv'];
-  const ESCRITURA = ['/api/asistentes/:id/cancelar', '/api/asistentes/:id/reactivar',
-                     '/api/config', '/api/usuarios'];
+  const ESPERADO = {
+    // Lectura del padrón: el perfil del cliente.
+    "GET /api/panel/resumen": 'consulta',
+    "GET /api/asistentes": 'consulta',
+    "GET /api/asistentes.csv": 'consulta',
+    // Escritura abierta al cliente, a propósito y acotada a una
+    // columna: corregir si alguien es invitado o proveedor.
+    "POST /api/asistentes/:id/tipo": 'consulta',
+    // Todo lo demás que cambia datos sigue siendo del administrador.
+    "POST /api/asistentes/:id/cancelar": 'admin',
+    "POST /api/asistentes/:id/reactivar": 'admin',
+    "POST /api/config": 'admin',
+    "POST /api/usuarios": 'admin',
+    "POST /api/usuarios/:id/clave": 'admin',
+    "POST /api/usuarios/:id/activo": 'admin',
+    "POST /api/usuarios/:id/rol": 'admin',
+    "GET /api/usuarios": 'admin',
+    // Operación en piso.
+    "POST /api/llegada": 'puerta',
+    "GET /api/puerta/resumen": 'puerta',
+    "POST /api/etiqueta/impresa": 'puerta',
+    "GET /api/etiqueta/:codigo": 'puerta',
+    "POST /api/mesa/registro": 'mesa',
+    "GET /api/mesa/buscar": 'mesa',
+  };
 
-  for (const ruta of LECTURA) {
-    const re = new RegExp("app\\.get\\('" + ruta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
-                          "',\\s*auth\\.exige\\('(\\w+)'\\)");
-    const m = servidor.match(re);
-    assert.ok(m, 'no se encontró la ruta de lectura ' + ruta);
-    assert.strictEqual(m[1], 'consulta',
-      ruta + ' exige ' + m[1] + ' y debería exigir consulta');
+  const halladas = {};
+  const re = /app\.(get|post)\(\s*'([^']+)'\s*,\s*auth\.exige\('(\w+)'\)/g;
+  let m;
+  while ((m = re.exec(servidor))) {
+    halladas[m[1].toUpperCase() + ' ' + m[2]] = m[3];
   }
 
-  for (const ruta of ESCRITURA) {
-    const re = new RegExp("app\\.post\\('" + ruta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
-                          "',\\s*\\n?\\s*auth\\.exige\\('(\\w+)'\\)");
-    const m = servidor.match(re);
-    assert.ok(m, 'no se encontró la ruta de escritura ' + ruta);
-    assert.strictEqual(m[1], 'admin',
-      ruta + ' exige ' + m[1] + ' y debería exigir admin');
+  for (const clave of Object.keys(halladas)) {
+    assert.ok(ESPERADO[clave],
+      'la ruta ' + clave + ' no está declarada en la prueba: decide su ' +
+      'permiso y agrégala, no la dejes pasar sin revisar');
+    assert.strictEqual(halladas[clave], ESPERADO[clave],
+      clave + ' exige ' + halladas[clave] + ' y debería exigir ' +
+      ESPERADO[clave]);
+  }
+  for (const clave of Object.keys(ESPERADO)) {
+    assert.ok(halladas[clave], 'desapareció la ruta ' + clave);
   }
 });
 

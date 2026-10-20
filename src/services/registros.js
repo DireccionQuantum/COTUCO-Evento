@@ -473,6 +473,42 @@ async function cancelar(client, id) {
   return { ok: true, asistente: rows[0] };
 }
 
+/**
+ * Corrige la categoría de un asistente.
+ *
+ * Mucha gente se equivoca al registrarse: un proveedor marca «invitado»
+ * porque es la primera opción, o un organismo colegiado marca
+ * «proveedor» porque vende algo. Eso sale mal impreso en la etiqueta y
+ * descuadra los conteos del resumen, y hasta ahora sólo un
+ * administrador podía arreglarlo.
+ *
+ * Toca una sola columna. No cancela, no reactiva, no edita nombres ni
+ * contactos: eso es lo que permite dársela a las cuentas de COTUCO sin
+ * abrirles el resto del padrón.
+ *
+ * Que ya esté en esa categoría no es un error —dos personas pueden
+ * tocar el mismo botón— así que devuelve ok y lo marca sin cambio.
+ */
+async function cambiarTipo(client, id, tipo) {
+  const t = tipoDe(tipo);
+  if (!t) return { ok: false, error: 'Categoría inválida' };
+
+  const { rows } = await client.query(
+    `UPDATE asistentes SET tipo = $2
+      WHERE id = $1 AND tipo <> $2
+      RETURNING id, nombre, organismo, tipo`,
+    [id, t]
+  );
+  if (rows[0]) return { ok: true, asistente: rows[0] };
+
+  const { rows: actual } = await client.query(
+    'SELECT id, nombre, organismo, tipo FROM asistentes WHERE id = $1',
+    [id]
+  );
+  if (!actual[0]) return { ok: false, error: 'No encontrado' };
+  return { ok: true, asistente: actual[0], sinCambio: true };
+}
+
 /** Deshace una cancelación, por si se tocó el botón por error. */
 async function reactivar(client, id) {
   const { rows } = await client.query(
@@ -507,4 +543,5 @@ module.exports = {
   listar,
   cancelar,
   reactivar,
+  cambiarTipo,
 };

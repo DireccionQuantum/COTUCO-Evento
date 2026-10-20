@@ -296,6 +296,70 @@ prueba('el texto corto cabe en una pastilla y en la etiqueta', () => {
       ': «' + reg.ETIQUETA_CORTA[t] + '»'));
 });
 
+/* ---------------- Cambio de categoría ---------------- */
+
+/**
+ * Base de mentiras: devuelve lo que se le diga y apunta lo que le
+ * preguntaron. Sirve para comprobar que `cambiarTipo` toca una sola
+ * columna, que es justo lo que sostiene el permiso que se le dio al
+ * perfil de consulta.
+ */
+function dbEspia(respuestas) {
+  const vistas = [];
+  return {
+    vistas,
+    query(sql, args) {
+      vistas.push({ sql, args });
+      return Promise.resolve({ rows: respuestas.shift() || [] });
+    },
+  };
+}
+
+prueba('cambiarTipo rechaza una categoría inventada', async () => {
+  const db = dbEspia([]);
+  const r = await reg.cambiarTipo(db, 1, 'patrocinador');
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(db.vistas.length, 0, 'no debe tocar la base siquiera');
+});
+
+prueba('cambiarTipo acepta las dos categorías reales', async () => {
+  for (const t of reg.TIPOS) {
+    const db = dbEspia([[{ id: 1, nombre: 'A', organismo: 'B', tipo: t }]]);
+    const r = await reg.cambiarTipo(db, 1, t);
+    assert.strictEqual(r.ok, true, 'rechazó ' + t);
+  }
+});
+
+prueba('cambiarTipo sólo escribe la columna tipo', async () => {
+  const db = dbEspia([[{ id: 7, nombre: 'A', organismo: 'B', tipo: 'proveedor' }]]);
+  await reg.cambiarTipo(db, 7, 'proveedor');
+  const escrituras = db.vistas.filter((v) => /UPDATE/i.test(v.sql));
+  assert.strictEqual(escrituras.length, 1, 'debe haber una sola escritura');
+  const set = escrituras[0].sql.split(/SET/i)[1].split(/WHERE/i)[0];
+  // Si alguien agrega otra columna al SET, este permiso deja de ser
+  // seguro para una cuenta de sólo lectura y la prueba tiene que caer.
+  assert.ok(!/,/.test(set),
+    'el UPDATE toca más de una columna: «' + set.trim() + '»');
+  assert.ok(/\btipo\b/.test(set), 'el UPDATE no toca tipo');
+  assert.ok(!/cancelado_en|llego_en|nombre|email|telefono/i.test(set),
+    'el UPDATE toca campos que no debe: «' + set.trim() + '»');
+});
+
+prueba('repetir la misma categoría no es un error', async () => {
+  // Primera consulta: el UPDATE no cambió nada. Segunda: la fila existe.
+  const db = dbEspia([[], [{ id: 3, nombre: 'A', organismo: 'B', tipo: 'general' }]]);
+  const r = await reg.cambiarTipo(db, 3, 'general');
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.sinCambio, true);
+});
+
+prueba('cambiarTipo avisa cuando el asistente no existe', async () => {
+  const db = dbEspia([[], []]);
+  const r = await reg.cambiarTipo(db, 999, 'general');
+  assert.strictEqual(r.ok, false);
+  assert.match(r.error, /no encontrado/i);
+});
+
 Promise.all(pendientes).then(function () {
   console.log('\n  ' + hechas + ' pruebas pasaron\n');
 });
