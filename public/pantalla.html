@@ -12,9 +12,14 @@
 /* Proyección en sala.
  *
  * Esto se mira desde el fondo del Grand Salón, de pie y con una copa en
- * la mano. Todo está dimensionado en vw y no en píxeles: la misma página
- * tiene que servir en un proyector de 1024 de ancho y en una pantalla de
- * 4K sin que nadie ajuste nada. Una sola cosa por vista, enorme.
+ * la mano. Todo está dimensionado en vw y vh y no en píxeles: la misma
+ * página tiene que servir en un proyector de 1024 de ancho y en una
+ * pantalla de 4K sin que nadie ajuste nada. Una sola cosa por vista,
+ * enorme.
+ *
+ * Dos estados. Entre sorteos, la marca del patrocinador ocupa el centro;
+ * al salir un ganador, el centro es suyo durante un rato y después la
+ * pantalla vuelve sola a la marca. Nadie tiene que acordarse de hacerlo.
  */
 
 html, body { height: 100%; overflow: hidden }
@@ -42,6 +47,74 @@ body {
   text-align: center; padding: 0 5vw; min-height: 0;
 }
 
+/* ================= Entre sorteos: la marca ================= */
+
+.marca { display: flex; flex-direction: column; align-items: center }
+
+.marca .credito {
+  font-size: 1.7vh; font-weight: 700; letter-spacing: .32em;
+  text-transform: uppercase; color: var(--acento); margin-bottom: 5vh;
+}
+
+.iso-caja {
+  position: relative; width: 26vh; height: 26vh;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4.5vh;
+}
+
+/* El resplandor respira detrás del isotipo. Es lo que impide que la
+   pantalla se lea como una imagen congelada cuando se mira de reojo
+   desde el otro lado del salón. */
+.iso-caja::before {
+  content: ''; position: absolute; inset: -22%;
+  background: radial-gradient(circle, rgba(121,181,76,.30) 0%,
+                              rgba(121,181,76,.10) 42%, transparent 68%);
+  animation: respira 5.5s ease-in-out infinite;
+}
+@keyframes respira {
+  0%, 100% { opacity: .55; transform: scale(.93) }
+  50%      { opacity: 1;   transform: scale(1.06) }
+}
+
+/* El isotipo gira. Tiene cinco aspas, así que una vuelta completa se lee
+   como rehilete y no como una imagen dando tumbos. Lento a propósito:
+   a esta escala, una vuelta rápida marea y distrae de la conversación,
+   que es lo que la gente está haciendo entre sorteo y sorteo. */
+.iso-caja img {
+  position: relative; width: 100%; height: 100%; object-fit: contain;
+  animation: gira 22s linear infinite;
+}
+@keyframes gira { to { transform: rotate(360deg) } }
+
+/* El logotipo con un destello que lo recorre cada tantos segundos.
+   El brillo se recorta con la silueta del propio PNG, así que viaja por
+   las letras y no por una caja rectangular encima de ellas. */
+.texto-caja { position: relative; display: inline-block }
+.texto-caja img { height: 9vh; width: auto; display: block }
+.texto-caja .destello {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg,
+    transparent 38%, rgba(246,238,163,.92) 50%, transparent 62%);
+  background-size: 260% 100%;
+  -webkit-mask-image: url('/img/quantum-texto.png');
+          mask-image: url('/img/quantum-texto.png');
+  -webkit-mask-size: contain; mask-size: contain;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  animation: destella 6s ease-in-out infinite;
+}
+@keyframes destella {
+  0%, 62%  { background-position: 190% 0 }
+  88%, 100% { background-position: -90% 0 }
+}
+
+.marca .sitio {
+  font-size: 1.8vh; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--apagado); margin-top: 4vh;
+}
+
+/* ================= Al salir un ganador ================= */
+
 .rotulo {
   font-size: 2vh; font-weight: 700; letter-spacing: .3em;
   text-transform: uppercase; color: var(--acento); margin-bottom: 2.5vh;
@@ -49,13 +122,26 @@ body {
 
 .premio {
   font-size: 5.2vh; font-weight: 700; color: var(--texto);
-  line-height: 1.15; margin-bottom: 1vh;
-}
-.patrocinador {
-  font-size: 2.2vh; color: var(--tenue); margin-bottom: 5vh;
+  line-height: 1.15; margin-bottom: 2vh;
 }
 
-/* El nombre del ganador: lo más grande de la pantalla, por mucho. */
+/* El patrocinador lleva su propio marco. Es quien puso el premio, y en
+   un renglón de texto gris se pierde desde la tercera fila de mesas. */
+.patrocinador {
+  display: inline-flex; align-items: baseline; gap: .8em;
+  border: 1px solid rgba(223,169,44,.45); border-radius: 999px;
+  background: rgba(223,169,44,.10);
+  padding: 1.1vh 2.4vh; margin-bottom: 5vh;
+}
+.patrocinador .et {
+  font-size: 1.5vh; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--apagado);
+}
+.patrocinador .quien {
+  font-size: 2.4vh; font-weight: 700; color: var(--acento-alto);
+  letter-spacing: .02em;
+}
+
 .ganador {
   font-size: 11vh; font-weight: 900; line-height: 1.02;
   letter-spacing: -.03em;
@@ -65,10 +151,6 @@ body {
   margin-bottom: 2.5vh; word-break: break-word;
 }
 .organismo { font-size: 3.4vh; font-weight: 500; color: var(--tenue) }
-
-.espera { color: var(--tenue) }
-.espera .grande { font-size: 6vh; font-weight: 800; color: var(--texto); line-height: 1.1 }
-.espera .chico { font-size: 2.4vh; margin-top: 2.5vh }
 
 /* La entrada del ganador. No es decoración: un nombre que aparece de
    golpe no se lee como un resultado, se lee como un error de la
@@ -80,13 +162,22 @@ body {
 }
 .revela { animation: entra .55s cubic-bezier(.2,.9,.3,1.1) both }
 
+/* El regreso a la marca es un fundido y no un corte: un cambio brusco
+   en una pantalla grande llama la atención de toda la sala justo cuando
+   ya no hay nada que anunciar. */
+@keyframes aparece { from { opacity: 0 } to { opacity: 1 } }
+.suave { animation: aparece 1.1s ease both }
+
 .pie {
   flex: 0 0 auto; display: flex; align-items: center;
   justify-content: space-between; padding: 2vh 3vw;
   border-top: 1px solid var(--linea-suave);
   font-size: 1.5vh; color: var(--apagado); letter-spacing: .1em;
 }
-.pie img { height: 4vh; width: auto; opacity: .85 }
+.pie img { height: 4vh; width: auto; opacity: .85; transition: opacity .6s }
+/* Con la marca en el centro, la del pie sobra: dos veces el mismo
+   logotipo en la misma pantalla se lee como un descuido. */
+.pie img.oculta { opacity: 0 }
 
 .aviso {
   position: fixed; left: 50%; bottom: 2vh; transform: translateX(-50%);
@@ -95,6 +186,11 @@ body {
   font-size: 1.6vh; opacity: 0; transition: opacity .3s;
 }
 .aviso.ver { opacity: 1 }
+
+@media (prefers-reduced-motion: reduce) {
+  .iso-caja img, .iso-caja::before, .texto-caja .destello,
+  .revela, .suave { animation: none }
+}
 </style>
 </head>
 <body>
@@ -107,16 +203,11 @@ body {
   </div>
 </div>
 
-<div class="centro" id="p-centro">
-  <div class="espera" id="p-espera">
-    <div class="grande">Sorteo de premios</div>
-    <div class="chico">En un momento comenzamos</div>
-  </div>
-</div>
+<div class="centro" id="p-centro"></div>
 
 <div class="pie">
   <span id="p-evento">COTUCO</span>
-  <img src="/img/quantum.png" alt="Quantum Marketing &amp; Advertising">
+  <img id="p-pie-logo" src="/img/quantum.png" alt="Quantum Marketing &amp; Advertising">
 </div>
 
 <div class="aviso" id="p-aviso"></div>
@@ -124,6 +215,20 @@ body {
 <script>
 (function () {
   'use strict';
+
+  /**
+   * Cuánto se queda el ganador en pantalla antes de volver a la marca.
+   *
+   * Noventa segundos es lo que tarda alguien en levantarse de una mesa
+   * del fondo, cruzar el salón y recoger su premio mientras la sala
+   * aplaude. Si se quedara fijo, la pantalla pasaría la mayor parte de
+   * la noche mostrando a un ganador de hace veinte minutos.
+   *
+   * Con la tecla G vuelve a mostrarse el último ganador, por si hace
+   * falta recordarlo después de que la pantalla ya regresó.
+   */
+  var SEGUNDOS_GANADOR = 90;
+
   function $(id) { return document.getElementById(id); }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -132,7 +237,10 @@ body {
     });
   }
 
-  var ultimoId = null;
+  var ultimoId = null;     // qué sorteo se está mostrando
+  var ultimo = null;       // los datos del último ganador conocido
+  var mostradoEn = 0;      // cuándo se puso en pantalla
+  var enMarca = false;     // para no repintar la marca en cada consulta
   var fallos = 0;
 
   function avisar(texto) {
@@ -142,8 +250,46 @@ body {
     a.classList.add('ver');
   }
 
-  // El nombre del evento se toma de la configuración, no se escribe
-  // aquí: la misma pantalla sirve para la siguiente edición.
+  /* ---------------- Los dos estados ---------------- */
+
+  function pintarMarca() {
+    if (enMarca) return;
+    enMarca = true;
+    $('p-pie-logo').classList.add('oculta');
+    $('p-centro').innerHTML =
+      '<div class="marca suave">' +
+        '<div class="credito">Registro, acceso y sorteo por</div>' +
+        '<div class="iso-caja">' +
+          '<img src="/img/quantum-isotipo.png" alt="">' +
+        '</div>' +
+        '<div class="texto-caja">' +
+          '<img src="/img/quantum-texto.png" alt="Quantum Marketing &amp; Advertising">' +
+          '<span class="destello"></span>' +
+        '</div>' +
+        '<div class="sitio">quantummkt.mx</div>' +
+      '</div>';
+  }
+
+  function pintarGanador(u) {
+    enMarca = false;
+    $('p-pie-logo').classList.remove('oculta');
+    $('p-centro').innerHTML =
+      '<div class="revela">' +
+        '<div class="rotulo">Ganador</div>' +
+        '<div class="premio">' + esc(u.premio) + '</div>' +
+        (u.patrocinador
+          ? '<div class="patrocinador">' +
+              '<span class="et">Cortesía de</span>' +
+              '<span class="quien">' + esc(u.patrocinador) + '</span>' +
+            '</div>'
+          : '') +
+        '<div class="ganador">' + esc(u.ganador) + '</div>' +
+        '<div class="organismo">' + esc(u.organismo || '') + '</div>' +
+      '</div>';
+  }
+
+  /* ---------------- Lo que llega del servidor ---------------- */
+
   fetch('/api/evento', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (d) { if (d && d.evento) $('p-evento').textContent = d.evento; })
@@ -153,34 +299,32 @@ body {
     $('p-elegibles').textContent = d.elegibles != null ? d.elegibles : '—';
 
     var u = d.ultimo;
-    if (!u) {
-      if (ultimoId !== null) { ultimoId = null; }
+
+    // Ganador nuevo: entra siempre, aunque la pantalla ya hubiera
+    // vuelto a la marca.
+    if (u && u.sorteo_id !== ultimoId) {
+      ultimoId = u.sorteo_id;
+      ultimo = u;
+      mostradoEn = Date.now();
+      pintarGanador(u);
       return;
     }
-    // Sólo se redibuja cuando cambia el ganador. Si se repintara en cada
-    // consulta, la animación se dispararía cada dos segundos y el nombre
-    // parecería parpadear toda la noche.
-    if (u.sorteo_id === ultimoId) return;
-    ultimoId = u.sorteo_id;
 
-    $('p-centro').innerHTML =
-      '<div class="revela">' +
-        '<div class="rotulo">Ganador</div>' +
-        '<div class="premio">' + esc(u.premio) + '</div>' +
-        (u.patrocinador
-          ? '<div class="patrocinador">Cortesía de ' + esc(u.patrocinador) + '</div>'
-          : '<div class="patrocinador"></div>') +
-        '<div class="ganador">' + esc(u.ganador) + '</div>' +
-        '<div class="organismo">' + esc(u.organismo || '') + '</div>' +
-      '</div>';
+    // Mismo ganador: se queda su rato y después la pantalla vuelve sola.
+    if (!enMarca && mostradoEn &&
+        Date.now() - mostradoEn > SEGUNDOS_GANADOR * 1000) {
+      pintarMarca();
+      return;
+    }
+
+    // Todavía no se ha sorteado nada en toda la noche.
+    if (!u && !ultimo) pintarMarca();
   }
 
   function consultar() {
     fetch('/api/sorteo/estado', { credentials: 'same-origin' })
       .then(function (r) {
-        if (r.status === 401 || r.status === 403) {
-          throw new Error('sesion');
-        }
+        if (r.status === 401 || r.status === 403) throw new Error('sesion');
         return r.json();
       })
       .then(function (d) { fallos = 0; avisar(''); pintar(d); })
@@ -196,16 +340,25 @@ body {
       });
   }
 
+  pintarMarca();
   consultar();
   setInterval(consultar, 2000);
 
-  // Tecla F para pantalla completa: el proyector se conecta y nadie
-  // quiere buscar el menú del navegador frente a la sala.
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'f' || e.key === 'F') {
+    var k = e.key.toLowerCase();
+    // F: pantalla completa. El proyector se conecta y nadie quiere
+    // buscar el menú del navegador frente a la sala.
+    if (k === 'f') {
       if (document.fullscreenElement) document.exitFullscreen();
       else document.documentElement.requestFullscreen().catch(function () {});
     }
+    // G: traer de vuelta al último ganador.
+    if (k === 'g' && ultimo) {
+      mostradoEn = Date.now();
+      pintarGanador(ultimo);
+    }
+    // M: volver a la marca sin esperar.
+    if (k === 'm') pintarMarca();
   });
 })();
 </script>
