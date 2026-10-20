@@ -21,6 +21,7 @@ const rateLimit = require('express-rate-limit');
 
 const { pool, enTransaccion, leerConfig, esSi } = require('./db');
 const reg = require('./services/registros');
+const sorteo = require('./services/sorteo');
 const auth = require('./middleware/auth');
 
 const app = express();
@@ -398,6 +399,91 @@ app.get('/api/asistentes.csv', auth.exige('consulta'), async (req, res, next) =>
 const CLAVES = ['evento', 'lema', 'sede', 'direccion', 'fecha', 'hora',
                 'registros_abiertos', 'cupo', 'etiqueta_en_puerta'];
 
+/* ================= Sorteo ================= */
+
+/**
+ * Si el sorteo exige haber entrado al salón.
+ *
+ * Se lee de la configuración en cada operación y no se cachea: el
+ * organizador puede cambiarlo a media noche —«ya no hay nadie elegible,
+ * ábranlo a todo el padrón»— y tiene que surtir efecto en el siguiente
+ * clic, no en el siguiente reinicio.
+ */
+async function exigeEntrada(ejecutor) {
+  const cfg = await leerConfig(ejecutor);
+  return esSi(cfg.sorteo_requiere_entrada);
+}
+
+/** Lo que mira la pantalla de proyección. Sólo lectura. */
+app.get('/api/sorteo/estado', auth.exige('consulta'), async (req, res, next) => {
+  try {
+    res.json(await sorteo.estado(pool, await exigeEntrada()));
+  } catch (err) { next(err); }
+});
+
+app.get('/api/sorteo/premios', auth.exige('consulta'), async (req, res, next) => {
+  try {
+    res.json({
+      premios: await sorteo.listarPremios(pool),
+      elegibles: await sorteo.contarElegibles(pool, await exigeEntrada()),
+      requiere_entrada: await exigeEntrada(),
+    });
+  } catch (err) { next(err); }
+});
+
+app.get('/api/sorteo/historial', auth.exige('consulta'), async (req, res, next) => {
+  try {
+    res.json({ sorteos: await sorteo.historial(pool) });
+  } catch (err) { next(err); }
+});
+
+app.post('/api/sorteo/premios', auth.exige('admin'), async (req, res, next) => {
+  try {
+    const r = await sorteo.crearPremio(pool, req.body || {});
+    if (!r.ok) return res.status(422).json(r);
+    res.json(r);
+  } catch (err) { next(err); }
+});
+
+app.post('/api/sorteo/premios/:id/borrar', auth.exige('admin'),
+  async (req, res, next) => {
+    try {
+      const r = await sorteo.borrarPremio(pool, parseInt(req.params.id, 10));
+      if (!r.ok) return res.status(422).json(r);
+      res.json(r);
+    } catch (err) { next(err); }
+  });
+
+/**
+ * La extracción.
+ *
+ * Toda la operación va en una transacción: se bloquea el premio, se
+ * elige dentro de la misma consulta y se inserta. Entre que se decide
+ * quién gana y que queda escrito no cabe nadie más.
+ */
+app.post('/api/sorteo/premios/:id/sortear', auth.exige('admin'),
+  async (req, res, next) => {
+    try {
+      const r = await enTransaccion(async (c) =>
+        sorteo.sortear(c, parseInt(req.params.id, 10),
+                       await exigeEntrada(c),
+                       req.session.usuario && req.session.usuario.nombre));
+      if (!r.ok) return res.status(422).json(r);
+      res.json(r);
+    } catch (err) { next(err); }
+  });
+
+app.post('/api/sorteo/:id/descartar', auth.exige('admin'),
+  async (req, res, next) => {
+    try {
+      const r = await enTransaccion((c) =>
+        sorteo.descartar(c, parseInt(req.params.id, 10),
+                         req.session.usuario && req.session.usuario.nombre));
+      if (!r.ok) return res.status(422).json(r);
+      res.json(r);
+    } catch (err) { next(err); }
+  });
+
 app.post('/api/config', auth.exige('admin'), async (req, res, next) => {
   try {
     const cambios = req.body || {};
@@ -473,6 +559,9 @@ app.get('/puerta',    pagina('puerta.html'));    // lector de accesos
 app.get('/mesa',      pagina('mesa.html'));      // registro en sitio
 app.get('/etiqueta',  pagina('etiqueta.html'));  // una etiqueta Brother QL
 app.get('/panel',     pagina('panel.html'));     // administración
+app.get('/tablero',   pagina('tablero.html'));   // a dónde entrar
+app.get('/sorteo',    pagina('sorteo.html'));    // control del sorteo
+app.get('/pantalla',  pagina('pantalla.html'));  // proyección en sala
 
 app.get('/api/salud', (req, res) => res.json({ ok: true }));
 

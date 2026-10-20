@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "migrate": "node src/migrar.js",
     "usuario": "node scripts/crear-usuario.js",
-    "test": "node test/registros.js && node test/consultas.js"
+    "test": "node test/registros.js && node test/sorteo.js && node test/consultas.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

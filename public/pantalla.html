@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0D0052">
+<meta name="robots" content="noindex">
+<title>Sorteo · COTUCO</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/ui.css">
+<style>
+/* Proyección en sala.
+ *
+ * Esto se mira desde el fondo del Grand Salón, de pie y con una copa en
+ * la mano. Todo está dimensionado en vw y no en píxeles: la misma página
+ * tiene que servir en un proyector de 1024 de ancho y en una pantalla de
+ * 4K sin que nadie ajuste nada. Una sola cosa por vista, enorme.
+ */
+
+html, body { height: 100%; overflow: hidden }
+body {
+  display: flex; flex-direction: column;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(223,169,44,.16), transparent 70%),
+    linear-gradient(170deg, var(--marino-alto) 0%, var(--marino) 45%, var(--tinta) 100%);
+}
+
+.cabecera {
+  flex: 0 0 auto; display: flex; align-items: center;
+  justify-content: space-between; padding: 2.2vh 3vw;
+}
+.cabecera img { height: 7vh; width: auto }
+.conteo {
+  text-align: right; font-size: 1.5vh; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--apagado); line-height: 1.7;
+}
+.conteo b { display: block; font-size: 3vh; color: var(--acento-alto); letter-spacing: 0 }
+
+.centro {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 0 5vw; min-height: 0;
+}
+
+.rotulo {
+  font-size: 2vh; font-weight: 700; letter-spacing: .3em;
+  text-transform: uppercase; color: var(--acento); margin-bottom: 2.5vh;
+}
+
+.premio {
+  font-size: 5.2vh; font-weight: 700; color: var(--texto);
+  line-height: 1.15; margin-bottom: 1vh;
+}
+.patrocinador {
+  font-size: 2.2vh; color: var(--tenue); margin-bottom: 5vh;
+}
+
+/* El nombre del ganador: lo más grande de la pantalla, por mucho. */
+.ganador {
+  font-size: 11vh; font-weight: 900; line-height: 1.02;
+  letter-spacing: -.03em;
+  background: linear-gradient(180deg, var(--oro-alto) 0%, var(--oro) 65%, var(--oro-bajo) 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: var(--oro);
+  margin-bottom: 2.5vh; word-break: break-word;
+}
+.organismo { font-size: 3.4vh; font-weight: 500; color: var(--tenue) }
+
+.espera { color: var(--tenue) }
+.espera .grande { font-size: 6vh; font-weight: 800; color: var(--texto); line-height: 1.1 }
+.espera .chico { font-size: 2.4vh; margin-top: 2.5vh }
+
+/* La entrada del ganador. No es decoración: un nombre que aparece de
+   golpe no se lee como un resultado, se lee como un error de la
+   pantalla. El escalón de escala y el fundido dan el instante que la
+   sala necesita para mirar hacia arriba. */
+@keyframes entra {
+  from { opacity: 0; transform: scale(.88) translateY(2vh) }
+  to   { opacity: 1; transform: none }
+}
+.revela { animation: entra .55s cubic-bezier(.2,.9,.3,1.1) both }
+
+.pie {
+  flex: 0 0 auto; display: flex; align-items: center;
+  justify-content: space-between; padding: 2vh 3vw;
+  border-top: 1px solid var(--linea-suave);
+  font-size: 1.5vh; color: var(--apagado); letter-spacing: .1em;
+}
+.pie img { height: 4vh; width: auto; opacity: .85 }
+
+.aviso {
+  position: fixed; left: 50%; bottom: 2vh; transform: translateX(-50%);
+  background: rgba(255,138,122,.16); border: 1px solid var(--rojo);
+  color: var(--rojo); padding: 10px 18px; border-radius: 999px;
+  font-size: 1.6vh; opacity: 0; transition: opacity .3s;
+}
+.aviso.ver { opacity: 1 }
+</style>
+</head>
+<body>
+
+<div class="cabecera">
+  <img src="/img/cotuco-blanco.png" alt="COTUCO">
+  <div class="conteo">
+    Participando
+    <b id="p-elegibles">—</b>
+  </div>
+</div>
+
+<div class="centro" id="p-centro">
+  <div class="espera" id="p-espera">
+    <div class="grande">Sorteo de premios</div>
+    <div class="chico">En un momento comenzamos</div>
+  </div>
+</div>
+
+<div class="pie">
+  <span id="p-evento">COTUCO</span>
+  <img src="/img/quantum.png" alt="Quantum Marketing &amp; Advertising">
+</div>
+
+<div class="aviso" id="p-aviso"></div>
+
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;',
+               '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  var ultimoId = null;
+  var fallos = 0;
+
+  function avisar(texto) {
+    var a = $('p-aviso');
+    if (!texto) { a.classList.remove('ver'); return; }
+    a.textContent = texto;
+    a.classList.add('ver');
+  }
+
+  // El nombre del evento se toma de la configuración, no se escribe
+  // aquí: la misma pantalla sirve para la siguiente edición.
+  fetch('/api/evento', { credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (d && d.evento) $('p-evento').textContent = d.evento; })
+    .catch(function () {});
+
+  function pintar(d) {
+    $('p-elegibles').textContent = d.elegibles != null ? d.elegibles : '—';
+
+    var u = d.ultimo;
+    if (!u) {
+      if (ultimoId !== null) { ultimoId = null; }
+      return;
+    }
+    // Sólo se redibuja cuando cambia el ganador. Si se repintara en cada
+    // consulta, la animación se dispararía cada dos segundos y el nombre
+    // parecería parpadear toda la noche.
+    if (u.sorteo_id === ultimoId) return;
+    ultimoId = u.sorteo_id;
+
+    $('p-centro').innerHTML =
+      '<div class="revela">' +
+        '<div class="rotulo">Ganador</div>' +
+        '<div class="premio">' + esc(u.premio) + '</div>' +
+        (u.patrocinador
+          ? '<div class="patrocinador">Cortesía de ' + esc(u.patrocinador) + '</div>'
+          : '<div class="patrocinador"></div>') +
+        '<div class="ganador">' + esc(u.ganador) + '</div>' +
+        '<div class="organismo">' + esc(u.organismo || '') + '</div>' +
+      '</div>';
+  }
+
+  function consultar() {
+    fetch('/api/sorteo/estado', { credentials: 'same-origin' })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) {
+          throw new Error('sesion');
+        }
+        return r.json();
+      })
+      .then(function (d) { fallos = 0; avisar(''); pintar(d); })
+      .catch(function (e) {
+        if (e && e.message === 'sesion') {
+          avisar('Sin sesión: abre /tablero en esta máquina y entra.');
+          return;
+        }
+        // Un parpadeo de red no debe poner un letrero rojo en la
+        // proyección. Sólo después de varios fallos seguidos se avisa,
+        // porque entonces sí hay algo que atender.
+        if (++fallos >= 4) avisar('Sin conexión con el servidor');
+      });
+  }
+
+  consultar();
+  setInterval(consultar, 2000);
+
+  // Tecla F para pantalla completa: el proyector se conecta y nadie
+  // quiere buscar el menú del navegador frente a la sala.
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'f' || e.key === 'F') {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(function () {});
+    }
+  });
+})();
+</script>
+</body>
+</html>

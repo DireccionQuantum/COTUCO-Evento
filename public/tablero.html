@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0D0052">
+<meta name="robots" content="noindex">
+<title>Tablero · COTUCO</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/ui.css">
+<style>
+/* El punto de partida del día del evento.
+ *
+ * Cada persona del equipo entra una vez aquí, ve lo que su perfil
+ * alcanza y se va a su pantalla. Lo que no puede usar no aparece: un
+ * botón que lleva a un «tu perfil no tiene acceso» es peor que la
+ * ausencia del botón, porque hace dudar a quien lo toca de si se
+ * equivocó de contraseña.
+ */
+
+.barra-sup {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--linea); margin-bottom: 20px;
+  gap: 12px; flex-wrap: wrap;
+}
+.barra-sup .quien { font-size: 13px; color: var(--tenue) }
+
+.evento {
+  text-align: center; margin-bottom: 22px;
+}
+.evento h2 { font-size: 20px; line-height: 1.25 }
+.evento .d { font-size: 13px; color: var(--apagado); margin-top: 6px }
+
+.rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+@media (max-width: 560px) { .rejilla { grid-template-columns: 1fr } }
+
+.modulo {
+  display: block; text-decoration: none; color: inherit;
+  border: 1px solid var(--linea); border-radius: var(--r);
+  padding: 18px 18px 16px; background: rgba(237,230,214,.04);
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.modulo:hover { border-color: var(--acento); background: rgba(223,169,44,.08) }
+.modulo:active { transform: scale(.99) }
+
+.modulo .ico {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(223,169,44,.14); border: 1px solid rgba(223,169,44,.3);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px;
+}
+.modulo .ico svg { width: 20px; height: 20px; stroke: var(--acento-alto); fill: none;
+  stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round }
+.modulo .t { font-size: 15.5px; font-weight: 700 }
+.modulo .d { font-size: 12.5px; color: var(--tenue); margin-top: 5px; line-height: 1.5 }
+
+/* El módulo que abre en otra pestaña se señala: quien conecta el
+   proyector no quiere perder la pantalla de control al tocarlo. */
+.modulo .fuera {
+  display: inline-block; font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--apagado); margin-top: 8px;
+}
+
+.salir { margin-top: 22px; text-align: center }
+.salir button {
+  background: none; border: none; color: var(--apagado);
+  font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline;
+}
+</style>
+</head>
+<body>
+
+<!-- ===== Acceso ===== -->
+<div class="marco acceso" id="acceso">
+  <div class="tarjeta">
+    <img class="escudo" src="/img/cotuco-blanco.png" alt="COTUCO">
+    <h2 style="text-align:center">Equipo</h2>
+    <p class="ay" style="text-align:center;margin:4px 0 18px">
+      Entra y elige a dónde vas</p>
+    <div class="campo">
+      <label for="a-email">Correo</label>
+      <input id="a-email" type="email" autocomplete="username"
+             autocapitalize="off" enterkeyhint="next">
+    </div>
+    <div class="campo">
+      <label for="a-clave">Contraseña</label>
+      <input id="a-clave" type="password" autocomplete="current-password"
+             enterkeyhint="go">
+    </div>
+    <div class="mensaje mal" id="a-error"></div>
+    <button class="boton" id="a-entrar">Entrar</button>
+  </div>
+</div>
+
+<!-- ===== Tablero ===== -->
+<div class="marco" id="modulo" hidden>
+  <div class="barra-sup">
+    <strong>Tablero</strong>
+    <span class="quien"><span id="t-quien"></span> · <span id="t-rol"></span></span>
+  </div>
+
+  <div class="evento">
+    <h2 id="t-evento">—</h2>
+    <div class="d" id="t-sede"></div>
+  </div>
+
+  <div class="rejilla" id="t-rejilla"></div>
+
+  <div class="salir"><button id="t-salir">Cerrar sesión</button></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;',
+               '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function api(ruta, opts) {
+    return fetch('/api' + ruta, Object.assign({
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+    }, opts || {})).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) { d.__estado = r.status; throw d; }
+        return d;
+      });
+    });
+  }
+
+  /**
+   * Qué alcanza cada perfil.
+   *
+   * Es la misma tabla que el middleware del servidor, repetida aquí sólo
+   * para decidir qué se dibuja. El servidor sigue siendo quien manda: si
+   * alguien escribe la ruta a mano, la rechaza igual. Esto es comodidad,
+   * no seguridad.
+   */
+  var PERMISOS = {
+    admin:    ['admin', 'mesa', 'puerta', 'consulta'],
+    mesa:     ['mesa', 'puerta'],
+    puerta:   ['puerta'],
+    consulta: ['consulta'],
+  };
+  var ROL_TEXTO = {
+    admin: 'Administrador', mesa: 'Mesa de registro',
+    puerta: 'Puerta', consulta: 'Consulta',
+  };
+
+  var I = {
+    panel:    '<path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>',
+    mesa:     '<path d="M12 5v14M5 12h14"/>',
+    puerta:   '<path d="M3 7V5h4M17 5h4v2M21 17v2h-4M7 19H3v-2"/><path d="M7 12h10"/>',
+    etiqueta: '<path d="M6 3h12v18l-6-4-6 4z"/>',
+    sorteo:   '<path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6.1L12 16.8 6.6 19.7l1.2-6.1L3.3 9.4l6.1-.8z"/>',
+    pantalla: '<path d="M3 5h18v11H3z"/><path d="M8 20h8M12 16v4"/>',
+    publico:  '<path d="M16 21v-2a4 4 0 0 0-8 0v2"/><circle cx="12" cy="7" r="4"/>',
+  };
+
+  var MODULOS = [
+    { permiso: 'mesa', url: '/mesa', ico: I.mesa, t: 'Mesa de registro',
+      d: 'Dar de alta a quien llega sin registrarse e imprimir su gafete.' },
+    { permiso: 'puerta', url: '/puerta', ico: I.puerta, t: 'Puerta',
+      d: 'Leer el QR, validar el pase y registrar la entrada al salón.' },
+    { permiso: 'consulta', url: '/panel', ico: I.panel, t: 'Panel',
+      d: 'Padrón completo, conteos en vivo, exportación y categorías.' },
+    { permiso: 'admin', url: '/sorteo', ico: I.sorteo, t: 'Sorteo',
+      d: 'Cargar premios y extraer ganadores frente a la sala.' },
+    { permiso: 'consulta', url: '/pantalla', ico: I.pantalla, t: 'Pantalla de sala',
+      d: 'La proyección del sorteo. Tecla F para pantalla completa.',
+      fuera: true },
+    { permiso: 'puerta', url: '/etiqueta', ico: I.etiqueta, t: 'Etiqueta suelta',
+      d: 'Reimprimir el gafete de una persona por su código.',
+      fuera: true },
+    { permiso: null, url: '/', ico: I.publico, t: 'Registro público',
+      d: 'El formulario que se comparte con los invitados.',
+      fuera: true },
+  ];
+
+  var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+               'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+  /**
+   * «2026-10-21» se lee como un dato de sistema, no como una fecha.
+   * Se arma a mano y no con toDateString ni con Date: construir un Date
+   * desde «AAAA-MM-DD» lo interpreta en UTC y en Tijuana muestra el día
+   * anterior, que en la pantalla del equipo el día del evento sería un
+   * error desconcertante.
+   */
+  function fechaLarga(iso) {
+    var p = String(iso || '').split('-');
+    if (p.length !== 3) return iso || '';
+    var mes = MESES[parseInt(p[1], 10) - 1];
+    return mes ? parseInt(p[2], 10) + ' de ' + mes + ' de ' + p[0] : iso;
+  }
+
+  function entrar() {
+    var b = $('a-entrar');
+    b.disabled = true; b.textContent = 'Entrando…';
+    api('/entrar', { method: 'POST', body: JSON.stringify({
+      email: $('a-email').value.trim(),
+      clave: $('a-clave').value,
+    }) }).then(function (d) { abrir(d.usuario); })
+      .catch(function (d) {
+        b.disabled = false; b.textContent = 'Entrar';
+        var e = $('a-error');
+        e.textContent = (d && d.error) || 'No se pudo entrar';
+        e.classList.add('ver');
+      });
+  }
+  $('a-entrar').addEventListener('click', entrar);
+  $('a-clave').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') entrar();
+  });
+
+  function abrir(u) {
+    $('acceso').hidden = true;
+    $('modulo').hidden = false;
+    $('t-quien').textContent = u.nombre;
+    $('t-rol').textContent = ROL_TEXTO[u.rol] || u.rol;
+
+    var mios = (PERMISOS[u.rol] || []);
+    $('t-rejilla').innerHTML = MODULOS.filter(function (m) {
+      return m.permiso === null || mios.indexOf(m.permiso) >= 0;
+    }).map(function (m) {
+      return '<a class="modulo" href="' + m.url + '"' +
+        (m.fuera ? ' target="_blank" rel="noopener"' : '') + '>' +
+        '<div class="ico"><svg viewBox="0 0 24 24">' + m.ico + '</svg></div>' +
+        '<div class="t">' + esc(m.t) + '</div>' +
+        '<div class="d">' + esc(m.d) + '</div>' +
+        (m.fuera ? '<span class="fuera">Abre en otra pestaña</span>' : '') +
+      '</a>';
+    }).join('');
+
+    api('/evento').then(function (d) {
+      if (d.evento) $('t-evento').textContent = d.evento;
+      $('t-sede').textContent =
+        [d.sede, fechaLarga(d.fecha), d.hora && d.hora + ' h']
+          .filter(Boolean).join(' · ');
+    }).catch(function () {});
+  }
+
+  $('t-salir').addEventListener('click', function () {
+    api('/salir', { method: 'POST' }).then(function () { location.reload(); })
+      .catch(function () { location.reload(); });
+  });
+
+  api('/sesion').then(function (d) {
+    if (d.usuario) abrir(d.usuario);
+  }).catch(function () {});
+})();
+</script>
+</body>
+</html>

@@ -131,7 +131,7 @@ for (const src of archivos) {
   const pedazos = src.split('`');
   for (let i = 1; i < pedazos.length; i += 2) {
     if (/\b(SELECT|INSERT|UPDATE|DELETE)\b/i.test(pedazos[i])) {
-      consultas.push(pedazos[i]);
+      consultas.push(sinInterpolaciones(pedazos[i]));
     }
   }
 }
@@ -146,6 +146,19 @@ for (const src of archivos) {
  */
 function sinCadenas(sql) {
   return sql.replace(/'(?:[^']|'')*'/g, "''");
+}
+
+/**
+ * Vacía las interpolaciones `${…}` de las plantillas de JavaScript.
+ *
+ * Lo que va ahí dentro es código JS, no SQL: un fragmento armado por una
+ * función —`${condicionElegible(req)}`— hacía que la revisión leyera
+ * «condicionelegible(» y reclamara una función de Postgres que no
+ * existe. Se sustituye por un espacio para no pegar las palabras de los
+ * dos lados.
+ */
+function sinInterpolaciones(sql) {
+  return sql.replace(/\$\{[^{}]*\}/g, ' ');
 }
 
 // Se unen con un punto y coma de por medio: con un simple salto de línea,
@@ -200,6 +213,7 @@ prueba('no se llama a ninguna función que no exista', () => {
     // Palabras reservadas que van seguidas de paréntesis.
     if (/^(select|insert|update|delete|from|where|on|and|or|not|in|values|set|returning|interval|int|text|timestamptz|boolean|exists|case|when|then|else|end|order|by|group|limit|offset|conflict|do|nothing|returning|as|is|null|distinct|union|all|using|with|over|partition|for|key|primary|foreign|unique|check|constraint|default|references|cascade|serial|char|varchar|numeric|decimal|real|float|bigint|smallint|date|time|timestamp|boolean)$/
         .test(f)) continue;
+    if (f === 'lateral') continue;   // `JOIN LATERAL (` no es una llamada
     sospechosas.add(f);
   }
   assert.strictEqual(sospechosas.size, 0,
@@ -213,7 +227,9 @@ prueba('todas las tablas y vistas que se consultan existen', () => {
 
   // `DO UPDATE SET` y `SAVEPOINT` quedan atrapados por el patrón sin ser
   // nombres de tabla: son palabras que siguen a UPDATE o a INTO.
-  const NO_SON_TABLAS = /^(set|savepoint|values|select)$/;
+  // `JOIN LATERAL (…)` es sintaxis: la palabra que sigue a JOIN no
+  // siempre es el nombre de una tabla.
+  const NO_SON_TABLAS = /^(set|savepoint|values|select|lateral)$/;
 
   const faltan = new Set();
   for (const m of todoSql.matchAll(/\b(?:FROM|JOIN|INTO|UPDATE)\s+(\w+)/gi)) {
@@ -364,6 +380,16 @@ prueba('cada ruta del servidor exige el permiso que le toca', () => {
     "POST /api/usuarios/:id/activo": 'admin',
     "POST /api/usuarios/:id/rol": 'admin',
     "GET /api/usuarios": 'admin',
+    // Sorteo. Mirar el estado alcanza con `consulta` —la pantalla de
+    // proyección y el panel del cliente lo leen— pero extraer un
+    // ganador es de administrador: es irreversible frente a la sala.
+    "GET /api/sorteo/estado": 'consulta',
+    "GET /api/sorteo/premios": 'consulta',
+    "GET /api/sorteo/historial": 'consulta',
+    "POST /api/sorteo/premios": 'admin',
+    "POST /api/sorteo/premios/:id/borrar": 'admin',
+    "POST /api/sorteo/premios/:id/sortear": 'admin',
+    "POST /api/sorteo/:id/descartar": 'admin',
     // Operación en piso.
     "POST /api/llegada": 'puerta',
     "GET /api/puerta/resumen": 'puerta',

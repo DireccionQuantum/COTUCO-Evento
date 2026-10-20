@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0D0052">
+<meta name="robots" content="noindex">
+<title>Control del sorteo · COTUCO</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/ui.css">
+<style>
+/* El control lo opera una persona de pie, con el micrófono en la otra
+ * mano y la sala mirando. Botones grandes, un premio por renglón y
+ * confirmación antes de cualquier cosa irreversible. */
+
+.barra-sup {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--linea); margin-bottom: 18px;
+  gap: 12px; flex-wrap: wrap;
+}
+.barra-sup .quien { font-size: 13px; color: var(--tenue) }
+
+.marcador { display: flex; gap: 9px; margin-bottom: 18px }
+.marcador > div {
+  flex: 1; background: rgba(237,230,214,.05); border: 1px solid var(--linea);
+  border-radius: var(--r); padding: 12px 8px; text-align: center;
+}
+.marcador .v {
+  font-size: 23px; font-weight: 900; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.marcador .k {
+  font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--apagado); margin-top: 6px;
+}
+
+.premio {
+  border: 1px solid var(--linea); border-radius: var(--r);
+  padding: 14px 16px; margin-bottom: 10px;
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+}
+.premio.listo { border-color: var(--acento); background: rgba(223,169,44,.07) }
+.premio .izq { flex: 1 1 240px; min-width: 0 }
+.premio .n { font-weight: 700; font-size: 15px }
+.premio .pat { font-size: 12.5px; color: var(--apagado); margin-top: 2px }
+.premio .gan {
+  font-size: 14px; color: var(--acento-alto); margin-top: 7px; font-weight: 600;
+}
+.premio .gan small { display: block; font-weight: 400; color: var(--tenue); font-size: 12.5px }
+.premio .der { display: flex; gap: 8px; flex: 0 0 auto }
+
+.nota {
+  font-size: 12.5px; color: var(--apagado); line-height: 1.55;
+  border-left: 2px solid var(--linea); padding-left: 12px; margin: 16px 0;
+}
+.forma { display: grid; grid-template-columns: 1fr 1fr 90px auto; gap: 10px; align-items: end }
+@media (max-width: 640px) { .forma { grid-template-columns: 1fr } }
+</style>
+</head>
+<body>
+
+<!-- ===== Acceso ===== -->
+<div class="marco acceso" id="acceso">
+  <div class="tarjeta">
+    <img class="escudo" src="/img/cotuco-blanco.png" alt="COTUCO">
+    <h2 style="text-align:center">Sorteo</h2>
+    <p class="ay" style="text-align:center;margin:4px 0 18px">
+      Control de premios · COTUCO</p>
+    <div class="campo">
+      <label for="a-email">Correo</label>
+      <input id="a-email" type="email" autocomplete="username"
+             autocapitalize="off" enterkeyhint="next">
+    </div>
+    <div class="campo">
+      <label for="a-clave">Contraseña</label>
+      <input id="a-clave" type="password" autocomplete="current-password"
+             enterkeyhint="go">
+    </div>
+    <div class="mensaje mal" id="a-error"></div>
+    <button class="boton" id="a-entrar">Entrar</button>
+  </div>
+</div>
+
+<!-- ===== Control ===== -->
+<div class="marco" id="modulo" hidden>
+  <div class="barra-sup">
+    <strong>Sorteo de premios</strong>
+    <span class="quien">
+      <span id="s-quien"></span> ·
+      <a href="/tablero">Tablero</a> ·
+      <a href="/pantalla" target="_blank" rel="noopener">Abrir pantalla</a>
+    </span>
+  </div>
+
+  <div class="marcador">
+    <div><div class="v" id="m-elegibles">—</div><div class="k">Participando</div></div>
+    <div><div class="v" id="m-pendientes">—</div><div class="k">Por sortear</div></div>
+    <div><div class="v" id="m-entregados">—</div><div class="k">Con ganador</div></div>
+  </div>
+
+  <p class="nota" id="s-regla"></p>
+
+  <div id="s-lista"></div>
+  <div class="mensaje mal" id="s-error"></div>
+
+  <h3 style="margin:22px 0 10px">Agregar premio</h3>
+  <div class="forma">
+    <div class="campo" style="margin:0">
+      <label for="f-nombre">Premio</label>
+      <input id="f-nombre" maxlength="90" placeholder="Cena para dos">
+    </div>
+    <div class="campo" style="margin:0">
+      <label for="f-pat">Patrocinador <span class="opc">— opcional</span></label>
+      <input id="f-pat" maxlength="90" placeholder="Grand Hotel Tijuana">
+    </div>
+    <div class="campo" style="margin:0">
+      <label for="f-orden">Orden</label>
+      <input id="f-orden" type="number" value="0" min="0" max="999">
+    </div>
+    <button class="boton chico" id="f-agregar">Agregar</button>
+  </div>
+  <div class="mensaje mal" id="f-error"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;',
+               '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function api(ruta, opts) {
+    return fetch('/api' + ruta, Object.assign({
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+    }, opts || {})).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) { d.__estado = r.status; throw d; }
+        return d;
+      });
+    });
+  }
+
+  function avisar(id, texto) {
+    var e = $(id);
+    e.textContent = texto || '';
+    e.classList.toggle('ver', !!texto);
+    if (texto) setTimeout(function () { e.classList.remove('ver'); }, 5000);
+  }
+
+  /* ---------------- Acceso ---------------- */
+
+  function entrar() {
+    var b = $('a-entrar');
+    b.disabled = true; b.textContent = 'Entrando…';
+    api('/entrar', { method: 'POST', body: JSON.stringify({
+      email: $('a-email').value.trim(),
+      clave: $('a-clave').value,
+    }) }).then(function (d) {
+      abrir(d.usuario);
+    }).catch(function (d) {
+      b.disabled = false; b.textContent = 'Entrar';
+      avisar('a-error', (d && d.error) || 'No se pudo entrar');
+    });
+  }
+  $('a-entrar').addEventListener('click', entrar);
+  $('a-clave').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') entrar();
+  });
+
+  function abrir(u) {
+    // El sorteo lo conduce un administrador. Con perfil de consulta se
+    // puede mirar el estado en /pantalla, pero no extraer: sacar un
+    // ganador es irreversible frente a la sala.
+    if (u.rol !== 'admin') {
+      avisar('a-error', 'El sorteo lo opera un administrador. Tu perfil puede ver la pantalla en /pantalla.');
+      return;
+    }
+    $('acceso').hidden = true;
+    $('modulo').hidden = false;
+    $('s-quien').textContent = u.nombre;
+    cargar();
+    setInterval(cargar, 6000);
+  }
+
+  /* ---------------- Premios ---------------- */
+
+  function cargar() {
+    api('/sorteo/premios').then(function (d) {
+      var premios = d.premios || [];
+      var conGanador = premios.filter(function (p) { return p.sorteo_id; }).length;
+
+      $('m-elegibles').textContent = d.elegibles;
+      $('m-pendientes').textContent = premios.length - conGanador;
+      $('m-entregados').textContent = conGanador;
+
+      $('s-regla').textContent = d.requiere_entrada
+        ? 'Participan sólo quienes ya pasaron por la puerta y no han ganado. Se cambia en el panel, en Ajustes.'
+        : 'Participa todo el padrón, haya entrado o no. Se cambia en el panel, en Ajustes.';
+
+      $('s-lista').innerHTML = premios.length ? premios.map(function (p) {
+        return '<div class="premio' + (p.sorteo_id ? ' listo' : '') + '">' +
+          '<div class="izq">' +
+            '<div class="n">' + esc(p.nombre) + '</div>' +
+            (p.patrocinador ? '<div class="pat">Cortesía de ' + esc(p.patrocinador) + '</div>' : '') +
+            (p.sorteo_id
+              ? '<div class="gan">' + esc(p.ganador) +
+                '<small>' + esc(p.ganador_organismo || '') +
+                (p.descartes ? ' · ' + p.descartes + ' descarte(s)' : '') +
+                '</small></div>'
+              : '') +
+          '</div>' +
+          '<div class="der">' +
+            (p.sorteo_id
+              ? '<button class="boton fantasma chico" data-descartar="' + p.sorteo_id +
+                '">No está, repetir</button>'
+              : '<button class="boton chico" data-sortear="' + p.id + '">Sortear</button>' +
+                '<button class="boton fantasma chico" data-borrar="' + p.id +
+                '">Borrar</button>') +
+          '</div>' +
+        '</div>';
+      }).join('') : '<p class="ay">Todavía no hay premios. Agrega el primero abajo.</p>';
+
+      $('s-lista').querySelectorAll('button[data-sortear]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!confirm('¿Sortear este premio ahora?\n\nEl ganador aparece de inmediato en la pantalla de la sala.')) return;
+          var btn = this;
+          btn.disabled = true; btn.textContent = 'Sorteando…';
+          api('/sorteo/premios/' + btn.getAttribute('data-sortear') + '/sortear',
+            { method: 'POST' })
+            .then(cargar)
+            .catch(function (d) {
+              btn.disabled = false; btn.textContent = 'Sortear';
+              avisar('s-error', (d && d.error) || 'No se pudo sortear');
+            });
+        });
+      });
+
+      $('s-lista').querySelectorAll('button[data-descartar]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!confirm('¿Descartar a esta persona y dejar el premio libre?\n\nQueda registrada como descartada y se puede volver a sortear.')) return;
+          api('/sorteo/' + this.getAttribute('data-descartar') + '/descartar',
+            { method: 'POST' })
+            .then(cargar)
+            .catch(function (d) {
+              avisar('s-error', (d && d.error) || 'No se pudo descartar');
+            });
+        });
+      });
+
+      $('s-lista').querySelectorAll('button[data-borrar]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!confirm('¿Borrar este premio de la lista?')) return;
+          api('/sorteo/premios/' + this.getAttribute('data-borrar') + '/borrar',
+            { method: 'POST' })
+            .then(cargar)
+            .catch(function (d) {
+              avisar('s-error', (d && d.error) || 'No se pudo borrar');
+            });
+        });
+      });
+    }).catch(function (d) {
+      if (d && d.__estado === 401) location.reload();
+    });
+  }
+
+  $('f-agregar').addEventListener('click', function () {
+    var b = this;
+    b.disabled = true;
+    api('/sorteo/premios', { method: 'POST', body: JSON.stringify({
+      nombre: $('f-nombre').value,
+      patrocinador: $('f-pat').value,
+      orden: $('f-orden').value,
+    }) }).then(function () {
+      $('f-nombre').value = ''; $('f-pat').value = '';
+      b.disabled = false;
+      cargar();
+    }).catch(function (d) {
+      b.disabled = false;
+      avisar('f-error', (d && d.error) || 'No se pudo agregar');
+    });
+  });
+
+  api('/sesion').then(function (d) {
+    if (d.usuario) abrir(d.usuario);
+  }).catch(function () {});
+})();
+</script>
+</body>
+</html>
