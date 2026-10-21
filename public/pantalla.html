@@ -49,7 +49,33 @@ body {
 
 /* ================= Entre sorteos: la marca ================= */
 
-.marca { display: flex; flex-direction: column; align-items: center }
+/* Dos diapositivas en el mismo lugar: la marca del patrocinador y la
+   del evento. Se superponen y se cruzan en fundido en vez de empujarse,
+   porque un corte en una pantalla de este tamaño llama la atención de
+   toda la sala cada quince segundos, que es justo lo contrario de lo
+   que debe hacer algo que corre de fondo.
+
+   El contenedor toma el alto completo para que las dos queden centradas
+   en el mismo punto: si cada una se midiera sola, al cambiar saltarían
+   unos píxeles y el fundido se leería como un parpadeo. */
+.marca { position: relative; width: 100%; height: 100% }
+.diapo {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  opacity: 0; transform: scale(.985);
+  transition: opacity 1.2s ease, transform 1.2s ease;
+  pointer-events: none;
+}
+.diapo.ver { opacity: 1; transform: none }
+
+/* La diapositiva del evento */
+.diapo-evento .marca-evento { width: min(46vw, 82vh) }
+.diapo-evento .marca-evento img { width: 100%; height: auto; display: block }
+.diapo-evento .lema {
+  font-size: 2.6vh; color: var(--tenue); margin-top: 4vh;
+  letter-spacing: .04em;
+}
 
 .marca .credito {
   font-size: 1.7vh; font-weight: 700; letter-spacing: .32em;
@@ -70,7 +96,8 @@ body {
  */
 .marca .lockup {
   display: flex; align-items: center;
-  width: min(54vw, 96vh);
+  /* 20 % menos que el tamaño original (54vw / 96vh). */
+  width: min(43.2vw, 76.8vh);
 }
 .marca .lockup .iso { width: 25.37%; aspect-ratio: 1 / 1 }
 .marca .lockup .sep { width: 1.90% }
@@ -205,6 +232,9 @@ body {
    */
   var SEGUNDOS_GANADOR = 90;
 
+  /** Cada cuánto se cambia entre la marca del patrocinador y la del evento. */
+  var SEGUNDOS_DIAPO = 15;
+
   function $(id) { return document.getElementById(id); }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -218,6 +248,7 @@ body {
   var mostradoEn = 0;      // cuándo se puso en pantalla
   var enMarca = false;     // para no repintar la marca en cada consulta
   var fallos = 0;
+  var lemaEvento = 'Un destino para congresos y convenciones';
 
   function avisar(texto) {
     var a = $('p-aviso');
@@ -228,25 +259,61 @@ body {
 
   /* ---------------- Los dos estados ---------------- */
 
+  /**
+   * Entre sorteos se alternan dos diapositivas: el patrocinador y el
+   * evento. Las dos se dibujan una sola vez y después sólo se cambia
+   * cuál está visible —el fundido lo hace el CSS—, en vez de rehacer el
+   * HTML cada quince segundos: si se reconstruyera, el isotipo
+   * reiniciaría su giro en cada cambio y se vería un tirón.
+   */
+  var diapoActual = 0;
+  var relojDiapos = null;
+
+  function alternar() {
+    var d = document.querySelectorAll('#p-centro .diapo');
+    if (d.length < 2) return;
+    diapoActual = (diapoActual + 1) % d.length;
+    for (var i = 0; i < d.length; i++) {
+      d[i].classList.toggle('ver', i === diapoActual);
+    }
+  }
+
+  function pararDiapos() {
+    if (relojDiapos) { clearInterval(relojDiapos); relojDiapos = null; }
+  }
+
   function pintarMarca() {
     if (enMarca) return;
     enMarca = true;
+    diapoActual = 0;
     $('p-pie-logo').classList.add('oculta');
     $('p-centro').innerHTML =
       '<div class="marca suave">' +
-        '<div class="credito">Registro, acceso y sorteo por</div>' +
-        '<div class="lockup">' +
-          '<span class="iso"><img src="/img/quantum-isotipo.png" alt=""></span>' +
-          '<span class="sep"></span>' +
-          '<span class="txt"><img src="/img/quantum-texto.png" ' +
-            'alt="Quantum Marketing &amp; Advertising"></span>' +
+        '<div class="diapo ver">' +
+          '<div class="credito">Registro, acceso y sorteo por</div>' +
+          '<div class="lockup">' +
+            '<span class="iso"><img src="/img/quantum-isotipo.png" alt=""></span>' +
+            '<span class="sep"></span>' +
+            '<span class="txt"><img src="/img/quantum-texto.png" ' +
+              'alt="Quantum Marketing &amp; Advertising"></span>' +
+          '</div>' +
+          '<div class="sitio">quantummkt.mx</div>' +
         '</div>' +
-        '<div class="sitio">quantummkt.mx</div>' +
+        '<div class="diapo diapo-evento">' +
+          '<div class="marca-evento">' +
+            '<img src="/img/tijuana.png" alt="Tijuana">' +
+          '</div>' +
+          '<div class="lema">' + esc(lemaEvento) + '</div>' +
+        '</div>' +
       '</div>';
+
+    pararDiapos();
+    relojDiapos = setInterval(alternar, SEGUNDOS_DIAPO * 1000);
   }
 
   function pintarGanador(u) {
     enMarca = false;
+    pararDiapos();
     $('p-pie-logo').classList.remove('oculta');
     $('p-centro').innerHTML =
       '<div class="revela">' +
@@ -267,7 +334,15 @@ body {
 
   fetch('/api/evento', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
-    .then(function (d) { if (d && d.evento) $('p-evento').textContent = d.evento; })
+    .then(function (d) {
+      if (!d) return;
+      if (d.evento) $('p-evento').textContent = d.evento;
+      if (d.lema) {
+        lemaEvento = d.lema;
+        var l = document.querySelector('.diapo-evento .lema');
+        if (l) l.textContent = d.lema;
+      }
+    })
     .catch(function () {});
 
   function pintar(d) {

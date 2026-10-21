@@ -226,6 +226,15 @@ select option { background: var(--fondo-alto); color: var(--texto); }
 
 /* ---------- Botones ---------- */
 
+/* El atributo `hidden` tiene que ganar siempre.
+ *
+ * Los componentes que declaran su propio `display` —.boton es
+ * inline-flex— pisan la regla que el navegador trae por defecto para
+ * [hidden], y el elemento se queda a la vista aunque el código lo haya
+ * ocultado. Pasó con el botón de reimprimir en la puerta: se escondía
+ * en JavaScript y seguía ahí. */
+[hidden] { display: none !important }
+
 .boton {
   display: inline-flex;
   align-items: center;

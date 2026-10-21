@@ -2,7 +2,19 @@
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+
+<!-- Para el iPad del stand.
+     En Safari, el kiosco sigue teniendo encima la barra de direcciones y
+     las pestañas: un invitado puede navegar a otro lado con dos toques.
+     Con esto, «Compartir › Añadir a pantalla de inicio» abre la estación
+     sin nada del navegador alrededor, que es el único modo de que un
+     iPad quede realmente fijo en una pantalla. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Registro COTUCO">
+<link rel="apple-touch-icon" href="/img/cotuco-blanco.png">
 <meta name="theme-color" content="#100E0B">
 <meta name="robots" content="noindex">
 <title>Entrada · COTUCO</title>
@@ -88,6 +100,83 @@ input.lector {
 
 .reimprimir { margin-top: 14px }
 
+/* =====================================================================
+   Modo kiosco
+   ---------------------------------------------------------------------
+   El iPad queda solo en el stand y cada quien escanea su propio pase.
+   Lo que sobra no es sólo ruido visual: un invitado curioso que toca
+   «Cámara» deja el lector inservible, y uno que toca «salir» cierra la
+   sesión y apaga la estación hasta que alguien del equipo se dé cuenta.
+   Por eso se esconden los controles, y de paso la lista de últimos en
+   llegar, que muestra nombre y organismo de otros invitados a quien
+   pase por enfrente.
+
+   Se oculta con CSS y no borrando elementos: el JavaScript sigue
+   encontrando todo lo que necesita —el campo del lector, el botón de
+   sonido, la casilla de impresión— y el modo se puede apagar sin
+   recargar la página.
+   ===================================================================== */
+
+body.kiosco .barra-sup,
+body.kiosco .marcador,
+body.kiosco .modos,
+body.kiosco .impresion,
+body.kiosco .ultimos,
+body.kiosco #b-reimprimir { display: none !important }
+
+/* Sin los controles arriba, el bloque de resultado es la pantalla
+   entera: se ve desde lejos y se entiende sin leer nada más. */
+body.kiosco .resultado {
+  min-height: 46vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 6vh 4vw;
+}
+body.kiosco .resultado .ico { font-size: 11vh }
+body.kiosco .resultado .quien { font-size: 5.2vh; margin-top: 2vh }
+body.kiosco .resultado .detalle { font-size: 2.4vh; margin-top: 1.4vh }
+body.kiosco .resultado .chip { margin-top: 2vh; font-size: 1.9vh }
+
+/* La cabecera del kiosco: identifica la estación para que no parezca
+   una pantalla rota ni una computadora de alguien. */
+.k-cabecera { display: none }
+body.kiosco .k-cabecera {
+  display: flex; flex-direction: column; align-items: center;
+  margin-bottom: 4vh; text-align: center;
+}
+body.kiosco .k-cabecera img { height: 9vh; width: auto }
+body.kiosco .k-cabecera .t {
+  font-size: 2.2vh; color: var(--tenue); margin-top: 2vh;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+
+/* La esquina por la que se sale. Invisible y sin cursor: está donde el
+   equipo sabe, no donde un invitado la encuentra. */
+.k-salida { display: none }
+body.kiosco .k-salida {
+  display: block; position: fixed; top: 0; left: 0;
+  width: 86px; height: 86px; z-index: 40;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.kiosco .marca { margin-top: 5vh }
+
+/* El campo del lector desaparece de la vista pero sigue existiendo: es
+   donde el escáner escribe. No se puede usar `display:none` ni
+   `visibility:hidden` —un elemento así no recibe el foco y las lecturas
+   se perderían—, así que se encoge y se vuelve transparente.
+   El aviso de «acerca tu pase» ya lo da el bloque grande de abajo; la
+   caja del campo lo repetía y además empujaba la cabecera. */
+body.kiosco #zona-lector {
+  position: fixed; top: 0; left: 50%;
+  width: 2px; height: 2px; opacity: 0; overflow: hidden;
+}
+
+/* Con tan poco en pantalla, el contenido se centra en el alto completo
+   en vez de quedar pegado arriba con media pantalla vacía debajo. */
+body.kiosco #modulo {
+  min-height: 100vh; display: flex; flex-direction: column;
+  justify-content: center;
+}
+
 .ultimos { margin-top: 18px }
 .ultimos .rotulo { margin-bottom: 9px }
 .ultimo {
@@ -147,6 +236,8 @@ input.lector {
     <button class="modo on" data-modo="camara">Cámara</button>
     <button class="modo" data-modo="lector">Lector USB</button>
     <button class="modo icono on" id="btn-sonido" title="Sonido">♪</button>
+    <button class="modo icono on" id="btn-auto"
+            title="Volver solo a «Listo» después de cada lectura">⟳</button>
   </div>
 
   <label class="impresion" id="sw-impresion">
@@ -163,6 +254,11 @@ input.lector {
     <input id="l-codigo" class="lector" autocomplete="off"
            autocapitalize="characters" placeholder="Acerca el pase"
            enterkeyhint="go">
+  </div>
+
+  <div class="k-cabecera">
+    <img src="/img/cotuco-blanco.png" alt="COTUCO">
+    <div class="t">Registro de asistentes</div>
   </div>
 
   <div class="resultado" id="res">
@@ -185,6 +281,8 @@ input.lector {
   </div>
 </div>
 
+<div class="k-salida" id="k-salida" aria-hidden="true"></div>
+
 <script src="/lib/html5-qrcode.min.js"></script>
 <script>
 (function () {
@@ -196,6 +294,24 @@ input.lector {
   var vigilante = null;
   var ultimaLectura = { codigo: null, cuando: 0 };
   var ultimoCodigo = null;     // para reimprimir sin volver a escanear
+
+  /**
+   * Autorregreso a «Listo».
+   *
+   * En el stand el iPad queda solo y cada quien escanea su propio pase.
+   * Sin esto, el resultado del anterior se queda en pantalla: quien
+   * llega ve el nombre de otra persona y no sabe si ya le tocó o si el
+   * sistema está ocupado. Tras unos segundos la pantalla se limpia sola
+   * y vuelve a invitar a escanear.
+   *
+   * El lector no se bloquea en ningún momento: esto es sólo lo que se
+   * muestra. Una lectura que entre durante esos segundos se atiende de
+   * inmediato y cancela el regreso pendiente.
+   */
+  var autoRegreso = true;
+  var relojRegreso = null;
+  var SEG_BIEN = 3.5;   // entrada correcta: se lee de un vistazo
+  var SEG_MAL  = 6;     // cancelado o código inválido: hay que leerlo
   var imprimir = false;
   var ventanaEtiqueta = null;
 
@@ -247,6 +363,7 @@ input.lector {
   function abrir(u) {
     $('acceso').hidden = true;
     $('modulo').hidden = false;
+    aplicarKiosco();
     $('p-quien').textContent = u.nombre || u.email;
 
     var guardado = 'camara';
@@ -297,11 +414,11 @@ input.lector {
       }
       arrancarVigilante();
       $('l-codigo').focus();
-      pintar('', '⌨', '', 'Listo para leer');
+      enReposo();
     } else {
       detenerVigilante();
       abrirCamara();
-      pintar('', '⌖', '', 'Apunta al código del pase');
+      enReposo();
     }
   }
 
@@ -417,6 +534,10 @@ input.lector {
     if (c === ultimaLectura.codigo && ahora - ultimaLectura.cuando < 2500) return;
     ultimaLectura = { codigo: c, cuando: ahora };
 
+    // Si ya venía un regreso en camino, se descarta: manda la lectura
+    // nueva, no el reloj de la anterior.
+    cancelarRegreso();
+
     api('/llegada', { method: 'POST', body: JSON.stringify({ codigo: c }) })
       .then(function (d) { mostrar(d, c); marcador(); })
       .catch(function (d) {
@@ -457,6 +578,10 @@ input.lector {
     if (navigator.vibrate) {
       navigator.vibrate(d.resultado === 'entrada' ? 55 : [90, 60, 90]);
     }
+
+    programarRegreso(
+      d.resultado === 'entrada' || d.resultado === 'repetido'
+        ? SEG_BIEN : SEG_MAL);
   }
 
   function pintar(clase, ico, quien, detalle, extra) {
@@ -466,6 +591,31 @@ input.lector {
       (quien ? '<div class="quien">' + esc(quien) + '</div>' : '') +
       '<div class="detalle">' + esc(detalle) + '</div>' +
       (extra || '');
+  }
+
+  /**
+   * La pantalla en reposo: lo que ve quien se acerca al stand.
+   *
+   * Se dibuja con el mismo `pintar` que los resultados para que el
+   * cambio sea sólo de contenido y no un salto de maquetación.
+   */
+  function enReposo() {
+    cancelarRegreso();
+    ultimoCodigo = null;
+    $('b-reimprimir').hidden = true;
+    pintar('', '⌁', '', modoActual === 'lector'
+      ? 'Acerca tu pase al lector'
+      : 'Apunta al código del pase');
+  }
+
+  function cancelarRegreso() {
+    if (relojRegreso) { clearTimeout(relojRegreso); relojRegreso = null; }
+  }
+
+  function programarRegreso(segundos) {
+    cancelarRegreso();
+    if (!autoRegreso) return;
+    relojRegreso = setTimeout(enReposo, segundos * 1000);
   }
 
   /* ---------- Marcador ---------- */
@@ -606,6 +756,89 @@ input.lector {
     b.classList.toggle('on', conSonido);
     b.textContent = conSonido ? '♪' : '✕';
   }
+
+  /* ------------------------------------------------------------------ *
+   * Modo kiosco
+   * ------------------------------------------------------------------ */
+
+  /**
+   * Se enciende abriendo /puerta?kiosco y queda guardado en el iPad, de
+   * modo que una recarga —o que Safari descarte la pestaña y la vuelva
+   * a cargar sola— no devuelve los controles al alcance de los
+   * invitados.
+   *
+   * Para salir: cinco toques rápidos en la esquina superior izquierda.
+   * No es una contraseña, es un gesto que nadie hace por accidente;
+   * quien conoce el lugar sale en dos segundos y sin teclado, que es lo
+   * que hay cuando la estación es un iPad.
+   */
+  var kiosco = false;
+
+  function aplicarKiosco() {
+    document.body.classList.toggle('kiosco', kiosco);
+    // Al entrar, se fuerza el lector: es a lo que está conectado el
+    // iPad, y en kiosco ya no hay botones para cambiarlo.
+    if (kiosco && modoActual !== 'lector') cambiarModo('lector');
+  }
+
+  function guardarKiosco() {
+    try { localStorage.setItem('cotuco_puerta_kiosco', kiosco ? 'si' : 'no'); }
+    catch (e) {}
+  }
+
+  try {
+    var qs = new URLSearchParams(location.search);
+    if (qs.has('kiosco')) {
+      kiosco = qs.get('kiosco') !== '0' && qs.get('kiosco') !== 'no';
+      guardarKiosco();
+    } else {
+      kiosco = localStorage.getItem('cotuco_puerta_kiosco') === 'si';
+    }
+  } catch (e) { kiosco = false; }
+
+  var toques = [];
+  function tocarSalida() {
+    var ahora = Date.now();
+    toques.push(ahora);
+    toques = toques.filter(function (t) { return ahora - t < 2500; });
+    if (toques.length < 5) return;
+    toques = [];
+    kiosco = false;
+    guardarKiosco();
+    aplicarKiosco();
+  }
+  $('k-salida').addEventListener('click', tocarSalida);
+
+  // En una computadora, para probarlo sin tocar la pantalla.
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey && e.shiftKey && (e.key === 'K' || e.key === 'k')) {
+      e.preventDefault();
+      kiosco = !kiosco;
+      guardarKiosco();
+      aplicarKiosco();
+    }
+  });
+
+  try { autoRegreso = localStorage.getItem('cotuco_puerta_auto') !== 'no'; }
+  catch (e) { autoRegreso = true; }
+
+  function pintarBotonAuto() {
+    var b = $('btn-auto');
+    b.classList.toggle('on', autoRegreso);
+    b.title = autoRegreso
+      ? 'La pantalla vuelve sola a «Listo» tras cada lectura'
+      : 'El resultado se queda hasta la siguiente lectura';
+  }
+  pintarBotonAuto();
+
+  $('btn-auto').addEventListener('click', function () {
+    autoRegreso = !autoRegreso;
+    try { localStorage.setItem('cotuco_puerta_auto', autoRegreso ? 'si' : 'no'); }
+    catch (e) {}
+    pintarBotonAuto();
+    // Apagarlo no debe dejar colgado un regreso ya programado.
+    if (!autoRegreso) cancelarRegreso();
+  });
 
   $('btn-sonido').addEventListener('click', function () {
     conSonido = !conSonido;
