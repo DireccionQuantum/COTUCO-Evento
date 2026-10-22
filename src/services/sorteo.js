@@ -25,7 +25,7 @@ const ESTADOS = ['ganador', 'descartado'];
  */
 function condicionElegible(requiereEntrada) {
   return `
-    a.cancelado_en IS NULL
+    a.cancelado_en IS NULL AND a.tipo = 'general'
     ${requiereEntrada ? 'AND a.llego_en IS NOT NULL' : ''}
     AND NOT EXISTS (
       SELECT 1 FROM sorteos s
