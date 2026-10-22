@@ -174,6 +174,12 @@ body {
 }
 @keyframes llena { to { width: 100% } }
 
+/* El confeti va en un lienzo encima de todo y no recibe clics. */
+#p-confeti {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 50;
+}
+
 /* La entrada del ganador. No es decoración: un nombre que aparece de
    golpe no se lee como un resultado, se lee como un error de la
    pantalla. El escalón de escala y el fundido dan el instante que la
@@ -232,6 +238,7 @@ body {
 </div>
 
 <div class="aviso" id="p-aviso"></div>
+<canvas id="p-confeti"></canvas>
 
 <script>
 (function () {
@@ -416,6 +423,7 @@ body {
         relojTombola = null;
         mostradoEn = Date.now();
         pintarGanador(u);
+        confeti();
         return;
       }
       var el = $('p-gira');
@@ -436,6 +444,85 @@ body {
 
   cargarNombres();
   setInterval(cargarNombres, 60000);
+
+  /* ---------------- Confeti dorado ---------------- */
+
+  /**
+   * Una ráfaga desde las dos esquinas de abajo, en los tonos del oro del
+   * logotipo, que cae girando y se apaga sola en unos cuatro segundos.
+   * Se dibuja en un lienzo propio, sin librerías: la página no carga
+   * scripts de fuera.
+   */
+  var COLORES_CONFETI = ['#DFA92C', '#F6EEA3', '#FFD873', '#C8901E', '#FFF6D5'];
+  var reducirMovimiento = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function confeti() {
+    if (reducirMovimiento) return;
+    var cv = $('p-confeti');
+    if (!cv || !cv.getContext) return;
+    var ctx = cv.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    var W = cv.clientWidth, H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    var escala = Math.max(0.6, Math.min(W, H) / 900);
+    var piezas = [];
+    function lanzar(x, dir, n) {
+      for (var i = 0; i < n; i++) {
+        var ang = (-Math.PI / 2) + dir * (0.15 + Math.random() * 0.55);
+        var vel = (14 + Math.random() * 12) * escala;
+        piezas.push({
+          x: x, y: H + 10,
+          vx: Math.cos(ang) * vel, vy: Math.sin(ang) * vel,
+          w: (7 + Math.random() * 8) * escala,
+          h: (4 + Math.random() * 6) * escala,
+          rot: Math.random() * Math.PI * 2,
+          vr: (Math.random() - 0.5) * 0.35,
+          bam: Math.random() * Math.PI * 2,
+          color: COLORES_CONFETI[Math.floor(Math.random() * COLORES_CONFETI.length)],
+          circulo: Math.random() < 0.18
+        });
+      }
+    }
+    lanzar(W * 0.04, 1, 110);
+    lanzar(W * 0.96, -1, 110);
+
+    var inicio = performance.now();
+    var DURA = 4200;
+
+    function cuadro(ahora) {
+      var t = ahora - inicio;
+      ctx.clearRect(0, 0, W, H);
+      var alfa = t > DURA - 900 ? Math.max(0, (DURA - t) / 900) : 1;
+      ctx.globalAlpha = alfa;
+      for (var i = 0; i < piezas.length; i++) {
+        var p = piezas[i];
+        p.vy += 0.38 * escala;      // gravedad
+        p.vx *= 0.985; p.vy *= 0.985;
+        p.bam += 0.12;
+        p.x += p.vx + Math.sin(p.bam) * 0.8;
+        p.y += p.vy;
+        p.rot += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        if (p.circulo) {
+          ctx.beginPath(); ctx.arc(0, 0, p.h * 0.6, 0, Math.PI * 2); ctx.fill();
+        } else {
+          // El coseno aplana el papelito al girar, como si diera vueltas.
+          ctx.fillRect(-p.w / 2, -p.h / 2 * Math.abs(Math.cos(p.bam)),
+                       p.w, p.h * Math.abs(Math.cos(p.bam)) + 0.5);
+        }
+        ctx.restore();
+      }
+      if (t < DURA) requestAnimationFrame(cuadro);
+      else ctx.clearRect(0, 0, W, H);
+    }
+    requestAnimationFrame(cuadro);
+  }
 
   /* ---------------- Lo que llega del servidor ---------------- */
 
