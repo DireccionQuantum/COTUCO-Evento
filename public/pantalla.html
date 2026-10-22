@@ -156,6 +156,24 @@ body {
 }
 .organismo { font-size: 3.4vh; font-weight: 500; color: var(--tenue) }
 
+/* ================= La tómbola =================
+ *
+ * Cinco segundos de nombres pasando antes del ganador. Pasan nombres de
+ * invitados reales, cada vez más lento, y una barra marca cuánto falta:
+ * la sala necesita ver que «está girando» para mirar hacia arriba antes
+ * de que salga el nombre. */
+.girando { opacity: .92; min-height: 11vh }
+.barra-t {
+  width: min(40vw, 70vh); height: .7vh; margin: 4vh auto 0;
+  background: var(--linea-suave); border-radius: 999px; overflow: hidden;
+}
+.barra-t i {
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--oro-bajo), var(--oro-alto));
+  animation: llena var(--dur-tombola, 5s) linear forwards;
+}
+@keyframes llena { to { width: 100% } }
+
 /* La entrada del ganador. No es decoración: un nombre que aparece de
    golpe no se lee como un resultado, se lee como un error de la
    pantalla. El escalón de escala y el fundido dan el instante que la
@@ -235,6 +253,9 @@ body {
   /** Cada cuánto se cambia entre la marca del patrocinador y la del evento. */
   var SEGUNDOS_DIAPO = 15;
 
+  /** Cuánto gira la tómbola antes de revelar al ganador. */
+  var SEGUNDOS_TOMBOLA = 5;
+
   function $(id) { return document.getElementById(id); }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -249,6 +270,9 @@ body {
   var enMarca = false;     // para no repintar la marca en cada consulta
   var fallos = 0;
   var lemaEvento = 'Un destino para congresos y convenciones';
+  var primeraConsulta = true;  // al abrir la página no se gira: sólo se muestra
+  var nombresTombola = [];     // invitados que pasan durante la tómbola
+  var relojTombola = null;
 
   function avisar(texto) {
     var a = $('p-aviso');
@@ -283,6 +307,7 @@ body {
   }
 
   function pintarMarca() {
+    pararTombola();
     if (enMarca) return;
     enMarca = true;
     diapoActual = 0;
@@ -330,6 +355,88 @@ body {
       '</div>';
   }
 
+  /* ---------------- La tómbola ---------------- */
+
+  /**
+   * Los nombres que pasan son de invitados (los proveedores no participan
+   * en la rifa, así que tampoco aparecen girando). Si ya llegaron
+   * suficientes, se usan sólo los presentes. Se refresca cada minuto
+   * para ir sumando a quien va entrando.
+   */
+  function cargarNombres() {
+    fetch('/api/asistentes?filtro=generales', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.asistentes) return;
+        var todos = d.asistentes.filter(function (a) { return a.nombre; });
+        var llegaron = todos.filter(function (a) { return a.llego_en; });
+        var base = llegaron.length >= 8 ? llegaron : todos;
+        nombresTombola = base.map(function (a) { return a.nombre; });
+      })
+      .catch(function () {});
+  }
+
+  function pararTombola() {
+    if (relojTombola) { clearTimeout(relojTombola); relojTombola = null; }
+  }
+
+  function codigoAlAzar() {
+    var abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', s = '';
+    for (var i = 0; i < 6; i++) s += abc.charAt(Math.floor(Math.random() * abc.length));
+    return s;
+  }
+
+  function tombola(u) {
+    enMarca = false;
+    pararDiapos();
+    pararTombola();
+    $('p-pie-logo').classList.remove('oculta');
+    $('p-centro').innerHTML =
+      '<div class="revela" style="--dur-tombola:' + SEGUNDOS_TOMBOLA + 's">' +
+        '<div class="rotulo">Sorteando</div>' +
+        '<div class="premio">' + esc(u.premio) + '</div>' +
+        (u.patrocinador
+          ? '<div class="patrocinador">' +
+              '<span class="et">Cortesía de</span>' +
+              '<span class="quien">' + esc(u.patrocinador) + '</span>' +
+            '</div>'
+          : '') +
+        '<div class="ganador girando" id="p-gira">&nbsp;</div>' +
+        '<div class="barra-t"><i></i></div>' +
+      '</div>';
+
+    var lista = nombresTombola.slice();
+    var i = lista.length ? Math.floor(Math.random() * lista.length) : 0;
+    var inicio = Date.now();
+    var dur = SEGUNDOS_TOMBOLA * 1000;
+
+    function paso() {
+      var t = Date.now() - inicio;
+      if (t >= dur) {
+        relojTombola = null;
+        mostradoEn = Date.now();
+        pintarGanador(u);
+        return;
+      }
+      var el = $('p-gira');
+      if (el) {
+        if (lista.length) {
+          i = (i + 1 + Math.floor(Math.random() * 3)) % lista.length;
+          el.textContent = lista[i];
+        } else {
+          el.textContent = codigoAlAzar();
+        }
+      }
+      // Empieza rápido y va frenando, como una tómbola de verdad.
+      var f = t / dur;
+      relojTombola = setTimeout(paso, 60 + Math.round(340 * f * f));
+    }
+    paso();
+  }
+
+  cargarNombres();
+  setInterval(cargarNombres, 60000);
+
   /* ---------------- Lo que llega del servidor ---------------- */
 
   fetch('/api/evento', { credentials: 'same-origin' })
@@ -356,9 +463,15 @@ body {
       ultimoId = u.sorteo_id;
       ultimo = u;
       mostradoEn = Date.now();
-      pintarGanador(u);
+      // Si la página se acaba de abrir (o se recargó), el ganador que ya
+      // estaba se muestra directo: girar de nuevo por alguien que ya se
+      // anunció confundiría a la sala.
+      if (primeraConsulta) pintarGanador(u);
+      else tombola(u);
+      primeraConsulta = false;
       return;
     }
+    primeraConsulta = false;
 
     // Mismo ganador: se queda su rato y después la pantalla vuelve sola.
     if (!enMarca && mostradoEn &&
@@ -404,6 +517,7 @@ body {
     }
     // G: traer de vuelta al último ganador.
     if (k === 'g' && ultimo) {
+      pararTombola();
       mostradoEn = Date.now();
       pintarGanador(ultimo);
     }
